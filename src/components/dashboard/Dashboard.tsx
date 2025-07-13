@@ -1,28 +1,18 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { SmartSearch } from "@/components/search/SmartSearch";
-import { ProgressAnalytics } from "@/components/learning/ProgressAnalytics";
 import {
-  useEnrollments,
   useStudentDashboard,
   useStudentDashboardStatistics,
 } from "@/hooks/useApiQueries";
-import { useAuthStore } from "@/stores/authStore";
 import { Link } from "react-router-dom";
 import { Navbar } from "../Navbar";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "../ui/skeleton";
 
 export const Dashboard = () => {
-  const { user } = useAuthStore();
   const { data: dashboardData, isLoading, error } = useStudentDashboard();
   const {
     data: statistics,
@@ -77,13 +67,13 @@ export const Dashboard = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Progress</p>
                   <p className="text-2xl font-bold">
-                    {(Math.round(completedLessons / totalLessons * 100)) || 0 }%
+                    {Math.round((completedLessons / totalLessons) * 100) || 0}%
                   </p>
                 </div>
                 <div className="text-2xl animate-float">📈</div>
               </div>
               <Progress
-                value={(completedLessons / totalLessons) || 0 * 100}
+                value={completedLessons / totalLessons || 0 * 100}
                 className="mt-2"
               />
             </CardContent>
@@ -160,45 +150,45 @@ export const Dashboard = () => {
           >
             <h2 className="text-2xl font-bold mb-6">Your Subjects</h2>
             {enrolledSubjects.map(({ subject }, index) => (
-                <Link to={`/subjects/${subject.id}`} key={subject.id}>
-                  <Card
-                    key={subject.id}
-                    variant="interactive"
-                    className="animate-spring-in my-4"
-                    style={{ animationDelay: `${0.8 + index * 0.1}s` }}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold mb-2">
-                            {subject.name}
-                          </h3>
-                          <p className="text-muted-foreground text-sm mb-3">
-                            {subject.description}
-                          </p>
+              <Link to={`/subjects/${subject.id}`} key={subject.id}>
+                <Card
+                  key={subject.id}
+                  variant="interactive"
+                  className="animate-spring-in my-4"
+                  style={{ animationDelay: `${0.8 + index * 0.1}s` }}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold mb-2">
+                          {subject.name}
+                        </h3>
+                        <p className="text-muted-foreground text-sm mb-3">
+                          {subject.description}
+                        </p>
 
-                          <div className="flex items-center gap-2 mb-3">
-                            <Badge variant="secondary">
-                              GR{subject.grade_level}
-                            </Badge>
-                            <Badge variant="outline">{subject.language}</Badge>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-muted-foreground">
-                              Progress: {subject.progress || 0}% complete
-                            </div>
-                            <Button variant="glass" size="sm">
-                              Continue Learning
-                            </Button>
-                          </div>
-
-                          <Progress value={subject.progress} className="mt-2" />
+                        <div className="flex items-center gap-2 mb-3">
+                          <Badge variant="secondary">
+                            GR{subject.grade_level}
+                          </Badge>
+                          <Badge variant="outline">{subject.language}</Badge>
                         </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-muted-foreground">
+                            Progress: {subject.progress || 0}% complete
+                          </div>
+                          <Button variant="glass" size="sm">
+                            Continue Learning
+                          </Button>
+                        </div>
+
+                        <Progress value={subject.progress} className="mt-2" />
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 

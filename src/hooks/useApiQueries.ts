@@ -7,25 +7,30 @@ import {
   getCurrentUser,
   getSubjects,
   getSubject,
+  createStudentProfile,
+  getStudentProfile,
   getLessons,
   getLesson,
   getQuizzes,
   getQuiz,
+  submitQuiz,
   getPracticeTasks,
   getEnrollments,
-  getStudentProfile,
-  createStudentProfile,
-  submitQuiz,
-  getAiAssistance,
   getStudentDashboard,
   getLanguages,
+  getAiAssistance,
   getStudentDashboardStatistics,
 } from "@/services/api";
-import { User, QuizSubmission, AIAssistRequest, StudentProfile } from "@/types/api";
+import {
+  User,
+  QuizSubmission,
+  AIAssistRequest,
+  StudentProfile,
+} from "@/types/api";
 
 // Auth hooks
 export const useLogin = () => {
-  const { setAuth, setLoading, setProfile } = useAuthStore();
+  const { setAuth, setLoading } = useAuthStore();
   const { toast } = useToast();
 
   return useMutation({
@@ -35,16 +40,9 @@ export const useLogin = () => {
       setLoading(true);
     },
     onSuccess: async (data, variables) => {
-      const user = await getCurrentUser();
-      let profile: null|StudentProfile;
-      try{
-        profile = await getStudentProfile()
-      }
-      catch(Exception){
-        profile = null
-      }
-      setAuth(user, data.access, data.refresh);
-      setProfile(profile)
+      const profile = await getCurrentUser();
+
+      setAuth(profile, data.access_token);
 
       toast({
         title: "Welcome back!",
@@ -74,7 +72,8 @@ export const useRegister = () => {
     onSuccess: async (user, variables) => {
       // variables contains the userData passed to mutationFn, including password if provided
       const response = await loginUser(user.email, variables.password);
-      setAuth(user, response.access, response.refresh);
+      const profile = await getCurrentUser();
+      setAuth(profile, response.access_token);
       toast({
         title: "Account Created!",
         description: "Welcome to our educational platform.",
@@ -275,7 +274,6 @@ export const useAiAssistance = () => {
     },
   });
 };
-
 
 export const useStudentDashboardStatistics = () => {
   const { isAuthenticated } = useAuthStore();

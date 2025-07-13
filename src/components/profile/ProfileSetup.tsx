@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useCreateProfile, useLanguages} from "@/hooks/useApiQueries";
+import { useCreateProfile, useLanguages, useStudentProfile } from "@/hooks/useApiQueries";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "../ui/skeleton";
-
+import { useAuthStore } from "@/stores/authStore";
 
 const grades = [
   { code: "1", name: "Grade 1" },
@@ -28,11 +28,21 @@ export const ProfileSetup = () => {
     language: '',
     current_grade: ''
   });
+  
   const navigate = useNavigate();
+  const { setProfile } = useAuthStore();
   const createProfileMutation = useCreateProfile();
-  const {data:languages, isLoading, error} = useLanguages();
+  const { data: languages, isLoading: languagesLoading, error: languagesError } = useLanguages();
+  const { data: existingProfile, isLoading: profileLoading, error: profileError } = useStudentProfile();
 
-  console.log('Languages: ',languages)
+  // Check if profile already exists and redirect to dashboard
+  useEffect(() => {
+    if (existingProfile && existingProfile.student) {
+      console.log("Profile found, redirecting to dashboard");
+      setProfile(existingProfile);
+      navigate("/dashboard", { replace: true });
+    }
+  }, [existingProfile, navigate, setProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,21 +50,21 @@ export const ProfileSetup = () => {
     if (!formData.language || !formData.current_grade) {
       return;
     }
+    
     try {
       const profile = await createProfileMutation.mutateAsync(formData);
       if (profile) {
-        // Redirect to dashboard or show success message
         console.log("Profile created successfully:", profile);
         navigate("/dashboard");
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       // Error handling is done in the mutation
     }
   };
 
-
-  if (isLoading) {
+  // Show loading while checking for existing profile or loading languages
+  if (profileLoading || languagesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6">
         <Skeleton className="h-10 w-48 mb-8" />
@@ -68,6 +78,18 @@ export const ProfileSetup = () => {
     );
   }
 
+  // Handle error states
+  if (languagesError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/20 p-4">
+        <Card className="shadow-large border-0">
+          <CardContent className="text-center p-6">
+            <p className="text-red-500">Error loading languages. Please try again later.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/20 p-4">
@@ -97,9 +119,9 @@ export const ProfileSetup = () => {
                     <SelectValue placeholder="Select your language" />
                   </SelectTrigger>
                   <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.name}
+                    {languages?.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {lang}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -1,4 +1,4 @@
-# 🧠 AI Educational Backend (Django REST Framework)
+# 🧠 AI Educational Backend (Fastapi)
 
 This backend powers the AI Educational System UI and provides robust RESTful APIs to support role-based educational workflows for Admin (staff), Students, and AI Agents.
 
@@ -12,7 +12,7 @@ This backend powers the AI Educational System UI and provides robust RESTful API
 
 ## 🛠 Tech Stack
 
-*   Django & Django REST Framework
+*   Fastapi
 *   PostgreSQL
 *   JWT / Token Authentication
 *   Celery + Redis (optional for async processing)

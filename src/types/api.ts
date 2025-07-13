@@ -5,24 +5,24 @@ export interface User {
   username: string;
   email: string;
   password?: string;
-  is_staff: boolean;
+  role: string;
   first_name: string;
   last_name: string;
-  dp: string | null;
+  dp?: string;
 }
 
 export interface AuthResponse {
-  access: string;
-  refresh: string;
+  access_token: string;
+  token_type: string;
 }
 
 export interface Subject {
   id: string;
   name: string;
   description: string;
-  total_lessons:number;
-  completed_lessons:number;
-  progress?:number;
+  total_lessons: number;
+  completed_lessons: number;
+  progress?: number;
   grade_level: number;
   language: string;
 }
@@ -65,14 +65,15 @@ export interface PracticeTask {
   created_at: string;
 }
 
-export interface StudentProfile {
-  id: string;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
+export interface Student {
+  id?: number;
   language: string;
   current_grade: string;
+}
+
+export interface StudentProfile {
+  user: User;
+  student?: Student;
 }
 
 export interface Enrollment {
@@ -119,10 +120,7 @@ export interface AdminDashboard {
   recent_attempts: QuizAttempt[];
 }
 
-export interface Language {
-  code: string;
-  name: string;
-}
+
 
 export interface AIAssistRequest {
   message: string;

@@ -12,7 +12,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 
 export function Navbar() {
-  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const { isAuthenticated, isLoading, profile } = useAuthStore();
   return (
     <header className="flex h-16 items-center justify-between px-4 md:px-6 max-w-6xl mx-auto bg-gradient-to-br from-background via-accent/5 to-primary/5">
       <div className="flex items-center gap-4">
@@ -34,12 +34,12 @@ export function Navbar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">
               <img
-                src={user.dp || "/placeholder.svg"}
+                src={profile.user.dp || "/placeholder.svg"}
                 alt="Avatar"
                 className="h-8 w-8 rounded-full"
               />
               <span className="hidden md:inline">
-                {!isLoading && user.username}
+                {!isLoading && profile.user.username}
               </span>
               <ChevronDown className="h-4 w-4" />
             </Button>

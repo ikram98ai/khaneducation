@@ -1,18 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, StudentProfile } from '@/types/api';
+import { StudentProfile } from '@/types/api';
 
 interface AuthState {
   // Auth state
-  user: User | null;
   profile: StudentProfile | null;
   token: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   
   // Actions
-  setAuth: (user: User, token: string, refreshToken: string) => void;
+  setAuth: (profile: StudentProfile, token: string) => void;
   setProfile: (profile: StudentProfile) => void;
   updateProfile: (updates: Partial<StudentProfile>) => void;
   clearAuth: () => void;
@@ -22,18 +20,16 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
       profile: null,
       token: null,
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
 
-      setAuth: (user, token, refreshToken) => {
+      setAuth: (profile, token) => {
         set({
-          user,
+          profile,
           token,
-          refreshToken,
           isAuthenticated: true,
           isLoading: false
         });
@@ -54,10 +50,8 @@ export const useAuthStore = create<AuthState>()(
 
       clearAuth: () => {
         set({
-          user: null,
           profile: null,
           token: null,
-          refreshToken: null,
           isAuthenticated: false,
           isLoading: false
         });
@@ -70,10 +64,8 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({
-        user: state.user,
         profile: state.profile,
         token: state.token,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated
       })
     }
