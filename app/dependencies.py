@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import User, Student, UserRole
 from .config import settings
-from .schemas import User, TokenData, StudentProfile
+from .schemas import User as UserSchema, TokenData, Student as StudentSchema
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -30,18 +30,17 @@ def verify_access_token(token: str, credentials_exception):
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
-    print("Data:: ", data)
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(days=30)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserSchema:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -51,7 +50,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("email")
         user_id: int = payload.get("user_id")
-        username: int = payload.get("username")
+        username: str = payload.get("username")
         role: str = payload.get("role")
         if email is None or user_id is None or username is None:
             raise credentials_exception
@@ -64,7 +63,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
 
-    return User(
+    return UserSchema(
         id=user.id,
         username=user.username,
         first_name=user.first_name,
@@ -74,25 +73,28 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
 
 
-async def get_current_student(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> StudentProfile:
-    if current_user.role != UserRole.STUDENT:
+async def get_current_student(user: UserSchema = Depends(get_current_user), db: Session = Depends(get_db)) -> StudentSchema:
+    if user.role != UserRole.STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Student profile required",
         )
 
     # Verify student profile exists
-    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    student = db.query(Student).filter(Student.user_id == user.id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Complete your student profile first",
         )
 
-    return StudentProfile(user=current_user, student_profile=student)
+    return student
 
 
-async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+
+
+
+async def get_current_admin(current_user: UserSchema = Depends(get_current_user)) -> UserSchema:
     if current_user.role not in [UserRole.ADMIN, UserRole.STAFF]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -101,7 +103,7 @@ async def get_current_admin(current_user: User = Depends(get_current_user)) -> U
     return current_user
 
 
-async def get_content_admin(current_user: User = Depends(get_current_user)) -> User:
+async def get_content_admin(current_user: UserSchema = Depends(get_current_user)) -> UserSchema:
     if current_user.role not in [UserRole.ADMIN, UserRole.CONTENT_MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

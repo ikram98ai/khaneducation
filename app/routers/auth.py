@@ -9,26 +9,22 @@ router = APIRouter(tags=["Authentication"])
 
 @router.post("/login", response_model=schemas.Token)
 def login(
-    user_credentials: OAuth2PasswordRequestForm = Depends(),
+    user_credentials: schemas.UserLogin,
     db: Session = Depends(database.get_db),
 ):
-    user = db.query(models.User).filter(models.User.email == user_credentials.username).first()
-
+    user = db.query(models.User).filter(models.User.email == user_credentials.email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials")
 
     if not utils.verify(user_credentials.password, user.password):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials")
 
-    # create a token
-    # return token
-
     access_token = dependencies.create_access_token(
         data={
             "user_id": user.id,
             "email": user.email,
             "username": user.username,
-            "role": str(user.role),
+            "role": user.role.value,
         }
     )
 

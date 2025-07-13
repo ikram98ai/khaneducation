@@ -2,17 +2,7 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
-from .models import UserRole
-
-
-class LanguageChoices(str, Enum):
-    EN = "English"
-    FR = "French"
-    PS = "Pashto"
-    ES = "Spanish"
-    AR = "Arabic"
-    FA = "Persian"
-    UR = "Urdu"
+from .models import UserRole, LanguageChoices
 
 
 class SubjectBase(BaseModel):
@@ -159,6 +149,16 @@ class QuizSubmission(BaseModel):
     responses: List[dict]
 
 
+class StudentDashboard(BaseModel):
+    student: "Student"
+    enrollments: List["Enrollment"]
+    recent_attempts: List["QuizAttempt"]
+    practice_tasks: List["PracticeTask"]
+
+    class Config:
+        from_attributes = True
+
+
 class DashboardStats(BaseModel):
     completedLessons: int
     totalLessons: int
@@ -176,13 +176,16 @@ class StudentBase(BaseModel):
     current_grade: int = Field(..., ge=1, le=12)
 
 
+
 class StudentCreate(StudentBase):
     pass
 
 
 class Student(StudentBase):
-    id: int
+    user_id: int
 
+    class Config:
+        from_attributes = True
 
 class UserBase(BaseModel):
     username: str
@@ -191,7 +194,6 @@ class UserBase(BaseModel):
     role: Optional[UserRole] = None
     email: EmailStr
 
-
 class UserCreate(UserBase):
     password: str
 
@@ -199,10 +201,17 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
 
+    class Config:
+        from_attributes = True
+
+
 
 class StudentProfile(BaseModel):
-    user = User
-    student_profile: Student
+    user: User
+    student_profile: Optional[Student] = None
+   
+    class Config:
+        from_attributes = True
 
 
 class UserLogin(BaseModel):
@@ -216,7 +225,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    user_id: Optional[str] = None
+    user_id: Optional[int] = None
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[UserRole] = None

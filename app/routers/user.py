@@ -47,7 +47,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     hashed_password = utils.hash(user.password)
     user.password = hashed_password
 
-    new_user = models.User(**user.dict())
+    new_user = models.User(**user.model_dump())
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -55,14 +55,65 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@router.get("/me", response_model=schemas.StudentProfile)
-def get_user(
-    db: Session = Depends(get_db),
-    user: models.Student = Depends(get_current_user),
-):
-    student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
 
-    return schemas.StudentProfile(user=user, student_profile=student)
+@router.post("/profile/me", response_model=schemas.User)
+def create_me(profile_data: schemas.StudentCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    existing_student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
+    if existing_student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Student profile already exists for this user"
+        )
+
+    new_student = models.Student(user_id=user.id, **profile_data.model_dump())
+    db.add(new_student)
+    db.commit()
+    db.refresh(new_student)
+
+    return schemas.StudentProfile(user=user, student_profile=new_student)
+
+
+@router.get("/profile/me", response_model=schemas.StudentProfile)
+def get_me(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+
+    student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
+    
+    # Convert to dictionaries
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "role": user.role,
+        "email": user.email,
+    }
+    
+    student_dict = None
+    if student:
+        student_dict = {
+            "user_id": student.user_id,
+            "language": student.language,
+            "current_grade": student.current_grade,
+        }
+    
+    return schemas.StudentProfile(user=user_dict, student_profile=student_dict)
+
+
+@router.put("/profile/me", response_model=schemas.User)
+def update_me(user_data: schemas.UserCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    user = db.query(models.User).filter(models.User.id == user.id).first()
+
+    obj_data = user_data.model_dump(exclude_unset=True)
+    for key, value in obj_data.items():
+        setattr(user, key, value)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
 
 
 @router.get("/{id}", response_model=schemas.StudentProfile)
@@ -79,16 +130,3 @@ def get_user(
     student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
 
     return schemas.StudentProfile(user=user, student_profile=student)
-
-
-@router.put("/me", response_model=schemas.User)
-def update_user(user_data: schemas.UserCreate, db: Session = Depends(get_db), user: models.Student = Depends(get_current_user)):
-    user = db.query(models.User).filter(models.User.id == user.id).first()
-
-    obj_data = user_data.dict(exclude_unset=True)
-    for key, value in obj_data.items():
-        setattr(user, key, value)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
