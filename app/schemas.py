@@ -1,0 +1,227 @@
+from datetime import datetime
+from enum import Enum
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional
+from .models import UserRole
+
+
+class LanguageChoices(str, Enum):
+    EN = "English"
+    FR = "French"
+    PS = "Pashto"
+    ES = "Spanish"
+    AR = "Arabic"
+    FA = "Persian"
+    UR = "Urdu"
+
+
+class SubjectBase(BaseModel):
+    name: str = Field(..., max_length=100)
+    description: Optional[str] = None
+    grade_level: int = Field(..., ge=1, le=12)
+    language: LanguageChoices = LanguageChoices.EN
+
+
+class SubjectCreate(SubjectBase):
+    pass
+
+
+class Subject(SubjectBase):
+    id: int
+    total_lessons: int
+    completed_lessons: int
+    progress: float
+
+    class Config:
+        from_attributes = True
+
+
+class LessonStatus(str, Enum):
+    DRAFT = "DR"
+    VERIFIED = "VE"
+
+
+class LessonBase(BaseModel):
+    subject_id: int
+    title: str = Field(..., max_length=255)
+    content: str
+
+
+class LessonCreate(LessonBase):
+    pass
+
+
+class Lesson(LessonBase):
+    id: int
+    instructor_id: int
+    status: LessonStatus
+    created_at: datetime
+    verified_at: Optional[datetime] = None
+    progress: float
+
+    class Config:
+        from_attributes = True
+
+
+class StudentBase(BaseModel):
+    language: LanguageChoices
+    current_grade: int = Field(..., ge=1, le=12)
+
+
+class StudentCreate(StudentBase):
+    pass
+
+
+class Student(StudentBase):
+    user_id: int
+    username: str
+    email: str
+    first_name: str
+    last_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class EnrollmentBase(BaseModel):
+    student_id: int
+    subject_id: int
+
+
+class Enrollment(EnrollmentBase):
+    id: int
+    enrolled_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DifficultyLevel(str, Enum):
+    EASY = "EA"
+    MEDIUM = "ME"
+    HARD = "HA"
+
+
+class PracticeTaskBase(BaseModel):
+    lesson_id: int
+    content: str
+    difficulty: DifficultyLevel = DifficultyLevel.MEDIUM
+
+
+class PracticeTask(PracticeTaskBase):
+    id: int
+    ai_generated: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class QuizQuestionBase(BaseModel):
+    question_text: str
+    correct_answer: str
+
+
+class QuizQuestion(QuizQuestionBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class QuizBase(BaseModel):
+    lesson_id: int
+    version: int = 1
+
+
+class Quiz(QuizBase):
+    id: int
+    ai_generated: bool
+    created_at: datetime
+    questions: List[QuizQuestion] = []
+
+    class Config:
+        from_attributes = True
+
+
+class QuizAttemptBase(BaseModel):
+    quiz_id: int
+    student_id: int
+
+
+class QuizAttempt(QuizAttemptBase):
+    id: int
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    score: Optional[float] = None
+    passed: bool
+    cheating_detected: bool
+
+    class Config:
+        from_attributes = True
+
+
+class StudentResponseBase(BaseModel):
+    question_id: int
+    student_answer: str
+    is_correct: bool
+
+
+class StudentResponse(StudentResponseBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class QuizSubmission(BaseModel):
+    quiz_id: int
+    responses: List[dict]
+
+
+class DashboardStats(BaseModel):
+    completedLessons: int
+    totalLessons: int
+    avgScore: float
+    streak: int
+
+
+class AIContentRequest(BaseModel):
+    message: str
+    context: Optional[str] = None
+
+
+class UserBase(BaseModel):
+    username: str
+    first_name: str
+    last_name: str
+    role: Optional[UserRole] = None
+    email: EmailStr
+
+
+class UserInDB(UserBase):
+    id: int
+    disabled: bool = False
+    student_profile: Optional[dict] = None
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserOut(UserBase):
+    id: int
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(UserBase):
+    id: Optional[str] = None
