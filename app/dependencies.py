@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import User, Student, UserRole
 from .config import settings
-from .schemas import UserInDB, TokenData
+from .schemas import User, TokenData, StudentProfile
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -41,7 +41,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserInDB:
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -49,12 +49,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        email: str = payload.get("email")
         user_id: int = payload.get("user_id")
+        username: int = payload.get("username")
         role: str = payload.get("role")
-        if username is None or user_id is None:
+        if email is None or user_id is None or username is None:
             raise credentials_exception
-        token_data = TokenData(username=username, user_id=user_id, role=role)
+        token_data = TokenData(email=email, user_id=user_id, username=username, role=role)
     except JWTError:
         raise credentials_exception
 
@@ -63,37 +64,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
 
-    # Check if user is disabled
-    if user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-
-    # Check if token was issued before last password change
-    if user.password_changed_at and payload.get("iat") < user.password_changed_at.timestamp():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password changed - please reauthenticate",
-        )
-
-    # Add student profile if exists
-    student_profile = None
-    if role == UserRole.STUDENT:
-        student = db.query(Student).filter(Student.user_id == user.id).first()
-        if student:
-            student_profile = {
-                "language": student.language,
-                "current_grade": student.current_grade,
-            }
-
-    return UserInDB(
+    return User(
         id=user.id,
         username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
         email=user.email,
         role=user.role,
-        student_profile=student_profile,
     )
 
 
-async def get_current_student(current_user: UserInDB = Depends(get_current_user), db: Session = Depends(get_db)) -> UserInDB:
+async def get_current_student(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> StudentProfile:
     if current_user.role != UserRole.STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -108,10 +89,10 @@ async def get_current_student(current_user: UserInDB = Depends(get_current_user)
             detail="Complete your student profile first",
         )
 
-    return current_user
+    return StudentProfile(user=current_user, student_profile=student)
 
 
-async def get_current_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role not in [UserRole.ADMIN, UserRole.STAFF]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -120,17 +101,7 @@ async def get_current_admin(current_user: UserInDB = Depends(get_current_user)) 
     return current_user
 
 
-# Optional: Role-specific admin dependencies
-async def get_super_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super admin privileges required",
-        )
-    return current_user
-
-
-async def get_content_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+async def get_content_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role not in [UserRole.ADMIN, UserRole.CONTENT_MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

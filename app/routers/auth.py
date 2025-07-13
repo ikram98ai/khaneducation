@@ -25,11 +25,9 @@ def login(
 
     access_token = dependencies.create_access_token(
         data={
-            "id": user.id,
+            "user_id": user.id,
             "email": user.email,
             "username": user.username,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
             "role": str(user.role),
         }
     )

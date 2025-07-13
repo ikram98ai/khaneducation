@@ -63,26 +63,6 @@ class Lesson(LessonBase):
         from_attributes = True
 
 
-class StudentBase(BaseModel):
-    language: LanguageChoices
-    current_grade: int = Field(..., ge=1, le=12)
-
-
-class StudentCreate(StudentBase):
-    pass
-
-
-class Student(StudentBase):
-    user_id: int
-    username: str
-    email: str
-    first_name: str
-    last_name: str
-
-    class Config:
-        from_attributes = True
-
-
 class EnrollmentBase(BaseModel):
     student_id: int
     subject_id: int
@@ -191,6 +171,19 @@ class AIContentRequest(BaseModel):
     context: Optional[str] = None
 
 
+class StudentBase(BaseModel):
+    language: LanguageChoices
+    current_grade: int = Field(..., ge=1, le=12)
+
+
+class StudentCreate(StudentBase):
+    pass
+
+
+class Student(StudentBase):
+    id: int
+
+
 class UserBase(BaseModel):
     username: str
     first_name: str
@@ -199,18 +192,17 @@ class UserBase(BaseModel):
     email: EmailStr
 
 
-class UserInDB(UserBase):
-    id: int
-    disabled: bool = False
-    student_profile: Optional[dict] = None
-
-
 class UserCreate(UserBase):
     password: str
 
 
-class UserOut(UserBase):
+class User(UserBase):
     id: int
+
+
+class StudentProfile(BaseModel):
+    user = User
+    student_profile: Student
 
 
 class UserLogin(BaseModel):
@@ -223,5 +215,8 @@ class Token(BaseModel):
     token_type: str
 
 
-class TokenData(UserBase):
-    id: Optional[str] = None
+class TokenData(BaseModel):
+    user_id: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, utils
 from ..database import get_db
 import re
+from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -23,7 +24,7 @@ def is_strong_password(password: str) -> bool:
     return True
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter((models.User.email == user.email) | (models.User.username == user.username)).first()
 
@@ -54,7 +55,17 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@router.get("/{id}", response_model=schemas.UserOut)
+@router.get("/me", response_model=schemas.StudentProfile)
+def get_user(
+    db: Session = Depends(get_db),
+    user: models.Student = Depends(get_current_user),
+):
+    student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
+
+    return schemas.StudentProfile(user=user, student_profile=student)
+
+
+@router.get("/{id}", response_model=schemas.StudentProfile)
 def get_user(
     id: int,
     db: Session = Depends(get_db),
@@ -65,5 +76,19 @@ def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id: {id} does not exist",
         )
+    student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
 
+    return schemas.StudentProfile(user=user, student_profile=student)
+
+
+@router.put("/me", response_model=schemas.User)
+def update_user(user_data: schemas.UserCreate, db: Session = Depends(get_db), user: models.Student = Depends(get_current_user)):
+    user = db.query(models.User).filter(models.User.id == user.id).first()
+
+    obj_data = user_data.dict(exclude_unset=True)
+    for key, value in obj_data.items():
+        setattr(user, key, value)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user
