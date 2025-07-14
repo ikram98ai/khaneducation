@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -17,12 +17,17 @@ router = APIRouter(
 # User routes
 @router.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.crud_user.get_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
     return crud.crud_user.create(db=db, obj_in=user)
 
 
 @router.get("/users/", response_model=List[schemas.User])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = crud.crud_user.get_multi(db, skip=skip, limit=limit)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No users found")
     return users
 
 
@@ -59,6 +64,8 @@ def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)
 @router.get("/subjects/", response_model=List[schemas.Subject])
 def read_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     subjects = crud.crud_subject.get_multi(db, skip=skip, limit=limit)
+    if not subjects:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No subjects found")
     return subjects
 
 
@@ -93,6 +100,8 @@ def read_lessons_for_subject(subject_id: int, skip: int = 0, limit: int = 100, d
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
     lessons = crud.crud_lesson.get_multi_by_subject(db, subject_id=subject_id, skip=skip, limit=limit)
+    if not lessons:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lessons found for this subject")
     return lessons
 
 
@@ -136,6 +145,8 @@ def read_tasks_for_lesson(lesson_id: int, skip: int = 0, limit: int = 100, db: S
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
     tasks = crud.crud_practice_task.get_multi_by_lesson(db, lesson_id=lesson_id, skip=skip, limit=limit)
+    if not tasks:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tasks found for this lesson")
     return tasks
 
 
@@ -154,4 +165,6 @@ def read_quizzes_for_lesson(lesson_id: int, skip: int = 0, limit: int = 100, db:
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
     quizzes = crud.crud_quiz.get_multi_by_lesson(db, lesson_id=lesson_id, skip=skip, limit=limit)
+    if not quizzes:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No quizzes found for this lesson")
     return quizzes
