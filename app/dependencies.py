@@ -66,8 +66,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return UserSchema(
         id=user.id,
         username=user.username,
-        first_name=user.first_name,
-        last_name=user.last_name,
+        first_name=user.first_name or "",
+        last_name=user.last_name or "",
         email=user.email,
         role=user.role,
     )

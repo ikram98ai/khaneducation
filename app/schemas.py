@@ -18,9 +18,9 @@ class SubjectCreate(SubjectBase):
 
 class Subject(SubjectBase):
     id: int
-    total_lessons: int
-    completed_lessons: int
-    progress: float
+    total_lessons: Optional[int] = None
+    completed_lessons: Optional[int] = None
+    progress: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -189,8 +189,8 @@ class Student(StudentBase):
 
 class UserBase(BaseModel):
     username: str
-    first_name: str
-    last_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     role: Optional[UserRole] = None
     email: EmailStr
 

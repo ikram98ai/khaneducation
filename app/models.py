@@ -66,7 +66,7 @@ class Subject(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text)
     grade_level = Column(Integer, nullable=False)
-    language = Column(Enum(LanguageChoices), default=LanguageChoices.EN)
+    language = Column(Enum(LanguageChoices, values_callable=lambda x: [e.value for e in x]), default=LanguageChoices.EN)
 
     lessons = relationship("Lesson", back_populates="subject")
     enrollments = relationship("Enrollment", back_populates="subject")
