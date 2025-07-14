@@ -88,10 +88,7 @@ def delete_subject(subject_id: int, db: Session = Depends(get_db)):
 # Nested Lesson routes
 @router.post("/subjects/{subject_id}/lessons/", response_model=schemas.Lesson)
 async def create_lesson_for_subject(
-    subject_id: int,
-    lesson: schemas.LessonCreate,
-    db: Session = Depends(get_db),
-    current_admin: schemas.User = Depends(get_current_admin)
+    subject_id: int, lesson: schemas.LessonCreate, db: Session = Depends(get_db), current_admin: schemas.User = Depends(get_current_admin)
 ):
     db_subject = crud.crud_subject.get(db, id=subject_id)
     if db_subject is None:

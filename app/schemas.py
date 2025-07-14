@@ -43,8 +43,6 @@ class LessonCreate(LessonBase):
     instructor_id: Optional[int] = None
 
 
-
-
 class Lesson(LessonBase):
     id: int
     instructor_id: int

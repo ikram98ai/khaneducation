@@ -190,4 +190,3 @@ def delete_user(
         db.rollback()
         logger.error(f"Error deleting user with id {id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete user")
-
