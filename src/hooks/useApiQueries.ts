@@ -489,7 +489,7 @@ export const useCreateAdminLesson = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ subjectId, lessonData }: { subjectId: string; lessonData: { title: string; content: string } }) =>
+    mutationFn: ({ subjectId, lessonData }: { subjectId: string; lessonData: Partial<Lesson> }) =>
       adminAPI.createAdminLesson(subjectId, lessonData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });

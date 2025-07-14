@@ -246,7 +246,7 @@ export const adminAPI = {
   },
 
     // Admin Lesson Management
-  createAdminLesson: async (subjectId: string, lessonData: { title: string; content: string }): Promise<Lesson> => {
+  createAdminLesson: async (subjectId: string, lessonData: Partial<Lesson>): Promise<Lesson> => {
     const response = await api.post(`/admin/subjects/${subjectId}/lessons/`, lessonData);
     return response.data;
   },

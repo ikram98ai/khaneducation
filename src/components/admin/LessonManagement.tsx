@@ -53,7 +53,7 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Lesson } from "@/types/api";
@@ -61,7 +61,8 @@ import { Lesson } from "@/types/api";
 const lessonSchema = z.object({
   title: z.string().min(1, "Lesson title is required"),
   content: z.string().min(1, "Lesson content is required"),
-  subjectId: z.string().min(1, "Subject is required"),
+  subject_id: z.string().min(1, "Subject is required"),
+  status: z.enum(["VE", "DR"]).default("DR"),
 });
 
 type LessonFormData = z.infer<typeof lessonSchema>;
@@ -95,9 +96,13 @@ export const LessonManagement = () => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LessonFormData>({
     resolver: zodResolver(lessonSchema),
+    defaultValues: {
+      status: "DR",
+    },
   });
 
   const createLessonMutation = useCreateAdminLesson();
@@ -114,11 +119,10 @@ export const LessonManagement = () => {
   const handleCreateLesson = async (data: LessonFormData) => {
     try {
       await createLessonMutation.mutateAsync({
-        subjectId: data.subjectId,
+        subjectId: data.subject_id,
         lessonData: { title: data.title, content: data.content },
       });
       setIsCreateModalOpen(false);
-      reset();
     } catch (error) {
       console.error("Failed to create lesson:", error);
     }
@@ -128,7 +132,8 @@ export const LessonManagement = () => {
     setEditingLesson(lesson);
     setValue("title", lesson.title);
     setValue("content", lesson.content);
-    setValue("subjectId", lesson.subject_id);
+    setValue("status", lesson.status);
+    setValue("subject_id", lesson.subject_id);
     setIsEditModalOpen(true);
   };
 
@@ -140,12 +145,12 @@ export const LessonManagement = () => {
         lessonData: {
           title: data.title,
           content: data.content,
-          subject_id: data.subjectId,
+          subject_id: data.subject_id,
+          status: data.status,
         },
       });
       setIsEditModalOpen(false);
       setEditingLesson(null);
-      reset();
     } catch (error) {
       console.error("Failed to update lesson:", error);
     }
@@ -160,6 +165,25 @@ export const LessonManagement = () => {
       }
     }
   };
+
+  // Reset form when modals open/close
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      reset({
+        title: "",
+        content: "",
+        subject_id: subjects?.[0]?.id || "",
+        status: "DR",
+      });
+    }
+  }, [isCreateModalOpen, subjects, reset]);
+
+  useEffect(() => {
+    if (!isEditModalOpen) {
+      setEditingLesson(null);
+      reset();
+    }
+  }, [isEditModalOpen, reset]);
 
   if (isLoadingSubjects || isLoadingLessons) {
     return (
@@ -221,26 +245,34 @@ export const LessonManagement = () => {
             >
               <div>
                 <Label htmlFor="subjectId">Subject</Label>
-                <Select onValueChange={(value) => setValue("subjectId", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects
-                      ?.filter(
-                        (subject) =>
-                          subject.id !== undefined && subject.id !== ""
-                      )
-                      .map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name} (Grade {subject.grade_level})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-destructive mt-1">
-                  Subject is required
-                </p>
+                <Controller
+                  name="subject_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects
+                          ?.filter(
+                            (subject) =>
+                              subject.id !== undefined && subject.id !== ""
+                          )
+                          .map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.name} (Grade {subject.grade_level})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.subject_id && (
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.subject_id.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -309,26 +341,30 @@ export const LessonManagement = () => {
           >
             <div>
               <Label htmlFor="subjectId">Subject</Label>
-              <Select
-                onValueChange={(value) => setValue("subjectId", value)}
-                value={editingLesson?.subject_id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects
-                    ?.filter(
-                      (subject) => subject.id !== undefined && subject.id !== ""
-                    )
-                    .map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name} (Grade {subject.grade_level})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {errors.subjectId && (
+              <Controller
+                name="subject_id"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects
+                        ?.filter(
+                          (subject) =>
+                            subject.id !== undefined && subject.id !== ""
+                        )
+                        .map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name} (Grade {subject.grade_level})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.subject_id && (
                 <p className="text-sm text-destructive mt-1">
                   Subject is required
                 </p>
@@ -360,6 +396,30 @@ export const LessonManagement = () => {
               {errors.content && (
                 <p className="text-sm text-destructive mt-1">
                   {errors.content.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DR">Draft</SelectItem>
+                      <SelectItem value="VE">Verified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.status && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.status.message}
                 </p>
               )}
             </div>
@@ -399,9 +459,7 @@ export const LessonManagement = () => {
 
         <Select
           value={selectedSubject}
-          onValueChange={(value) =>
-            setSelectedSubject(value === "all" ? "" : value)
-          }
+          onValueChange={(value) => setSelectedSubject(value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Filter by subject" />
