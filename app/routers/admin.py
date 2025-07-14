@@ -87,11 +87,19 @@ def delete_subject(subject_id: int, db: Session = Depends(get_db)):
 
 # Nested Lesson routes
 @router.post("/subjects/{subject_id}/lessons/", response_model=schemas.Lesson)
-def create_lesson_for_subject(subject_id: int, lesson: schemas.LessonCreate, db: Session = Depends(get_db)):
+async def create_lesson_for_subject(
+    subject_id: int,
+    lesson: schemas.LessonCreate,
+    db: Session = Depends(get_db),
+    current_admin: schemas.User = Depends(get_current_admin)
+):
     db_subject = crud.crud_subject.get(db, id=subject_id)
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
-    return crud.crud_lesson.create(db=db, obj_in=lesson)
+    lesson.subject_id = subject_id
+    lesson.instructor_id = current_admin.id
+    db_lesson = crud.crud_lesson.create(db=db, obj_in=lesson)
+    return schemas.Lesson.from_orm(db_lesson)
 
 
 @router.get("/subjects/{subject_id}/lessons/", response_model=List[schemas.Lesson])
@@ -102,7 +110,7 @@ def read_lessons_for_subject(subject_id: int, skip: int = 0, limit: int = 100, d
     lessons = crud.crud_lesson.get_multi_by_subject(db, subject_id=subject_id, skip=skip, limit=limit)
     if not lessons:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lessons found for this subject")
-    return lessons
+    return [schemas.Lesson.from_orm(lesson) for lesson in lessons]
 
 
 # Individual Lesson routes
@@ -111,7 +119,7 @@ def read_lesson(lesson_id: int, db: Session = Depends(get_db)):
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return db_lesson
+    return schemas.Lesson.from_orm(db_lesson)
 
 
 @router.put("/lessons/{lesson_id}", response_model=schemas.Lesson)
@@ -119,7 +127,8 @@ def update_lesson(lesson_id: int, lesson: schemas.LessonCreate, db: Session = De
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return crud.crud_lesson.update(db=db, db_obj=db_lesson, obj_in=lesson)
+    db_lesson = crud.crud_lesson.update(db=db, db_obj=db_lesson, obj_in=lesson)
+    return schemas.Lesson.from_orm(db_lesson)
 
 
 @router.delete("/lessons/{lesson_id}", response_model=schemas.Lesson)
@@ -127,7 +136,8 @@ def delete_lesson(lesson_id: int, db: Session = Depends(get_db)):
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return crud.crud_lesson.remove(db=db, id=lesson_id)
+    db_lesson = crud.crud_lesson.remove(db=db, id=lesson_id)
+    return schemas.Lesson.from_orm(db_lesson)
 
 
 # Nested PracticeTask routes
@@ -136,7 +146,8 @@ def create_task_for_lesson(lesson_id: int, task: schemas.PracticeTaskBase, db: S
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return crud.crud_practice_task.create(db=db, obj_in=task)
+    db_task = crud.crud_practice_task.create(db=db, obj_in=task)
+    return schemas.PracticeTask.from_orm(db_task)
 
 
 @router.get("/lessons/{lesson_id}/practice_tasks/", response_model=List[schemas.PracticeTask])
@@ -147,7 +158,7 @@ def read_tasks_for_lesson(lesson_id: int, skip: int = 0, limit: int = 100, db: S
     tasks = crud.crud_practice_task.get_multi_by_lesson(db, lesson_id=lesson_id, skip=skip, limit=limit)
     if not tasks:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tasks found for this lesson")
-    return tasks
+    return [schemas.PracticeTask.from_orm(task) for task in tasks]
 
 
 # Nested Quiz routes
@@ -156,7 +167,9 @@ def create_quiz_for_lesson(lesson_id: int, quiz: schemas.QuizBase, db: Session =
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return crud.crud_quiz.create(db=db, obj_in=quiz)
+    quiz.lesson_id = lesson_id
+    db_quiz = crud.crud_quiz.create(db=db, obj_in=quiz)
+    return schemas.Quiz.from_orm(db_quiz)
 
 
 @router.get("/lessons/{lesson_id}/quizzes/", response_model=List[schemas.Quiz])
@@ -167,4 +180,4 @@ def read_quizzes_for_lesson(lesson_id: int, skip: int = 0, limit: int = 100, db:
     quizzes = crud.crud_quiz.get_multi_by_lesson(db, lesson_id=lesson_id, skip=skip, limit=limit)
     if not quizzes:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No quizzes found for this lesson")
-    return quizzes
+    return [schemas.Quiz.from_orm(quiz) for quiz in quizzes]

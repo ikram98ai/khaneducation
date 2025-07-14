@@ -22,7 +22,8 @@ def create_lesson(
     current_user: models.User = Depends(get_current_user),
 ):
     try:
-        return services.create_lesson_with_content(db, subject_id, current_user.id, lesson.title)
+        db_lesson = services.create_lesson_with_content(db, subject_id, current_user.id, lesson.title)
+        return schemas.Lesson.from_orm(db_lesson)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except SQLAlchemyError as e:
@@ -41,7 +42,7 @@ def read_lessons(
         lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject_id).offset(skip).limit(limit).all()
         if not lessons:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lessons found for this subject")
-        return lessons
+        return [schemas.Lesson.from_orm(lesson) for lesson in lessons]
     except SQLAlchemyError as e:
         logger.error(f"Error fetching lessons for subject {subject_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
@@ -57,7 +58,7 @@ def verify_lesson(lesson_id: int, db: Session = Depends(database.get_db)):
         lesson.status = models.LessonStatus.VERIFIED
         lesson.verified_at = datetime.utcnow()
         db.commit()
-        return lesson
+        return schemas.Lesson.from_orm(lesson)
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Error verifying lesson {lesson_id}: {e}")

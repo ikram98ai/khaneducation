@@ -47,7 +47,7 @@ def get_quiz_attempts(
         attempts = query.offset(skip).limit(limit).all()
         if not attempts:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No quiz attempts found")
-        return attempts
+        return [schemas.QuizAttempt.from_orm(attempt) for attempt in attempts]
     except SQLAlchemyError as e:
         logger.error(f"Error fetching quiz attempts: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
@@ -58,4 +58,4 @@ def get_quiz_attempt(attempt_id: int, db: Session = Depends(database.get_db)):
     attempt = crud.crud_quiz_attempt.get(db, attempt_id)
     if not attempt:
         raise HTTPException(status_code=404, detail="Attempt not found")
-    return attempt
+    return schemas.QuizAttempt.from_orm(attempt)

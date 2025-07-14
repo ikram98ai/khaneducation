@@ -2,6 +2,8 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
+
+
 from .models import UserRole, LanguageChoices
 
 
@@ -32,13 +34,15 @@ class LessonStatus(str, Enum):
 
 
 class LessonBase(BaseModel):
-    subject_id: int
     title: str = Field(..., max_length=255)
     content: str
 
 
 class LessonCreate(LessonBase):
-    pass
+    subject_id: Optional[int] = None
+    instructor_id: Optional[int] = None
+
+
 
 
 class Lesson(LessonBase):
@@ -47,7 +51,6 @@ class Lesson(LessonBase):
     status: LessonStatus
     created_at: datetime
     verified_at: Optional[datetime] = None
-    progress: float
 
     class Config:
         from_attributes = True
@@ -229,3 +232,15 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[UserRole] = None
+
+
+class AdminDashboard(BaseModel):
+    total_students: int
+    total_lessons: int
+    total_subjects: int
+    total_quizzes: int
+    recent_lessons: List[Lesson]
+    recent_attempts: List[QuizAttempt]
+
+    class Config:
+        from_attributes = True

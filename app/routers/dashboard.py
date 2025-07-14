@@ -50,16 +50,18 @@ def student_stats(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.get("/admin", response_model=dict)
+@router.get("/admin", response_model=schemas.AdminDashboard)
 def admin_dashboard(db: Session = Depends(database.get_db)):
     try:
+        recent_lessons = db.query(models.Lesson).order_by(models.Lesson.created_at.desc()).limit(5).all()
+        recent_attempts = db.query(models.QuizAttempt).order_by(models.QuizAttempt.start_time.desc()).limit(10).all()
         return {
             "total_students": db.query(models.Student).count(),
             "total_lessons": db.query(models.Lesson).count(),
             "total_subjects": db.query(models.Subject).count(),
             "total_quizzes": db.query(models.Quiz).count(),
-            "recent_lessons": db.query(models.Lesson).order_by(models.Lesson.created_at.desc()).limit(5).all(),
-            "recent_attempts": db.query(models.QuizAttempt).order_by(models.QuizAttempt.start_time.desc()).limit(10).all(),
+            "recent_lessons": [schemas.Lesson.from_orm(lesson) for lesson in recent_lessons],
+            "recent_attempts": [schemas.QuizAttempt.from_orm(attempt) for attempt in recent_attempts],
         }
     except SQLAlchemyError as e:
         logger.error(f"Error fetching admin dashboard: {e}")
