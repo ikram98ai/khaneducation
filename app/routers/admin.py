@@ -121,6 +121,7 @@ def read_lesson(lesson_id: int, db: Session = Depends(get_db)):
 
 @router.put("/lessons/{lesson_id}", response_model=schemas.Lesson)
 def update_lesson(lesson_id: int, lesson: schemas.LessonCreate, db: Session = Depends(get_db)):
+    print("DEBUG:: PUT lesson:: ",lesson)
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")

@@ -1,10 +1,9 @@
 from datetime import datetime
-from enum import Enum
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 
 
-from .models import UserRole, LanguageChoices
+from .models import UserRole, LanguageChoices, LessonStatus, DifficultyLevel
 
 
 class SubjectBase(BaseModel):
@@ -28,9 +27,6 @@ class Subject(SubjectBase):
         from_attributes = True
 
 
-class LessonStatus(str, Enum):
-    DRAFT = "DR"
-    VERIFIED = "VE"
 
 
 class LessonBase(BaseModel):
@@ -41,7 +37,7 @@ class LessonBase(BaseModel):
 class LessonCreate(LessonBase):
     subject_id: Optional[int] = None
     instructor_id: Optional[int] = None
-
+    status: LessonStatus
 
 class Lesson(LessonBase):
     id: int
@@ -68,10 +64,6 @@ class Enrollment(EnrollmentBase):
         from_attributes = True
 
 
-class DifficultyLevel(str, Enum):
-    EASY = "EA"
-    MEDIUM = "ME"
-    HARD = "HA"
 
 
 class PracticeTaskBase(BaseModel):
