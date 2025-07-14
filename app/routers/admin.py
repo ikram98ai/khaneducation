@@ -105,8 +105,8 @@ def read_lessons_for_subject(subject_id: int, skip: int = 0, limit: int = 100, d
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
     lessons = crud.crud_lesson.get_multi_by_subject(db, subject_id=subject_id, skip=skip, limit=limit)
-    if not lessons:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lessons found for this subject")
+    # if not lessons:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lessons found for this subject")
     return [schemas.Lesson.from_orm(lesson) for lesson in lessons]
 
 

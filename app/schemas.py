@@ -46,6 +46,7 @@ class LessonCreate(LessonBase):
 class Lesson(LessonBase):
     id: int
     instructor_id: int
+    subject_id: Optional[int] = None
     status: LessonStatus
     created_at: datetime
     verified_at: Optional[datetime] = None
