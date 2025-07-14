@@ -2,26 +2,12 @@ from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from .. import models, schemas, utils
 from ..database import get_db
-import re
 from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 # /users/
 # /users
-
-
-def is_strong_password(password: str) -> bool:
-    """Check password strength."""
-    if (
-        len(password) < 8
-        or not re.search(r"[A-Z]", password)
-        or not re.search(r"[a-z]", password)
-        or not re.search(r"[0-9]", password)
-        or not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password)
-    ):
-        return False
-    return True
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.User)
@@ -34,7 +20,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         if existing_user.username == user.username:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username is already taken.")
 
-    if not is_strong_password(user.password):
+    if not utils.is_strong_password(user.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
@@ -55,15 +41,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-
 @router.post("/profile/me", response_model=schemas.User)
 def create_me(profile_data: schemas.StudentCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     existing_student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
     if existing_student:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Student profile already exists for this user"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student profile already exists for this user")
 
     new_student = models.Student(user_id=user.id, **profile_data.model_dump())
     db.add(new_student)
@@ -78,9 +60,8 @@ def get_me(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-
     student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
-    
+
     # Convert to dictionaries
     user_dict = {
         "id": user.id,
@@ -90,7 +71,7 @@ def get_me(
         "role": user.role,
         "email": user.email,
     }
-    
+
     student_dict = None
     if student:
         student_dict = {
@@ -98,7 +79,7 @@ def get_me(
             "language": student.language,
             "current_grade": student.current_grade,
         }
-    
+
     return schemas.StudentProfile(user=user_dict, student_profile=student_dict)
 
 
@@ -113,7 +94,6 @@ def update_me(user_data: schemas.UserCreate, db: Session = Depends(get_db), user
     db.commit()
     db.refresh(user)
     return user
-
 
 
 @router.get("/{id}", response_model=schemas.StudentProfile)

@@ -5,6 +5,7 @@ from ..dependencies import get_current_student
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+
 def get_student_practice_tasks(db: Session, student_id: int):
     enrolled_subjects = db.query(models.Enrollment.subject_id).filter(models.Enrollment.student_id == student_id).subquery()
     return db.query(models.PracticeTask).join(models.Lesson).filter(models.Lesson.subject_id.in_(enrolled_subjects)).limit(10).all()
@@ -22,14 +23,13 @@ def student_dashboard(
         "practice_tasks": get_student_practice_tasks(db, current_student.user_id),
     }
 
+
 @router.get("/student/stats", response_model=schemas.DashboardStats)
 def student_stats(
     db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
 ):
     return services.get_student_dashboard_stats(db, current_student.user_id)
-
-
 
 
 @router.get("/admin", response_model=dict)

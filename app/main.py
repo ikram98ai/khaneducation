@@ -13,6 +13,7 @@ from .routers import (
     student,
     base,
     dashboard,
+    admin,
 )
 
 
@@ -37,6 +38,7 @@ app.include_router(task.router)
 app.include_router(quiz.router)
 app.include_router(base.router)
 app.include_router(dashboard.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

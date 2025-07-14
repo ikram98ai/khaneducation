@@ -91,9 +91,6 @@ async def get_current_student(user: UserSchema = Depends(get_current_user), db: 
     return student
 
 
-
-
-
 async def get_current_admin(current_user: UserSchema = Depends(get_current_user)) -> UserSchema:
     if current_user.role not in [UserRole.ADMIN, UserRole.STAFF]:
         raise HTTPException(

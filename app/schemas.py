@@ -176,7 +176,6 @@ class StudentBase(BaseModel):
     current_grade: int = Field(..., ge=1, le=12)
 
 
-
 class StudentCreate(StudentBase):
     pass
 
@@ -187,12 +186,14 @@ class Student(StudentBase):
     class Config:
         from_attributes = True
 
+
 class UserBase(BaseModel):
     username: str
     first_name: str
     last_name: str
     role: Optional[UserRole] = None
     email: EmailStr
+
 
 class UserCreate(UserBase):
     password: str
@@ -205,11 +206,10 @@ class User(UserBase):
         from_attributes = True
 
 
-
 class StudentProfile(BaseModel):
     user: User
     student_profile: Optional[Student] = None
-   
+
     class Config:
         from_attributes = True
 

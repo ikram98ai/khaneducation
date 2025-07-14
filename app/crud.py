@@ -47,7 +47,8 @@ class CRUDSubject(CRUDBase[models.Subject, schemas.SubjectCreate, schemas.Subjec
 
 
 class CRUDLesson(CRUDBase[models.Lesson, schemas.LessonCreate, schemas.LessonCreate]):
-    pass
+    def get_multi_by_subject(self, db: Session, *, subject_id: int, skip: int = 0, limit: int = 100) -> List[models.Lesson]:
+        return db.query(self.model).filter(self.model.subject_id == subject_id).offset(skip).limit(limit).all()
 
 
 class CRUDStudent(CRUDBase[models.Student, schemas.StudentCreate, schemas.StudentCreate]):
@@ -59,11 +60,13 @@ class CRUDEnrollment(CRUDBase[models.Enrollment, schemas.EnrollmentBase, schemas
 
 
 class CRUDPracticeTask(CRUDBase[models.PracticeTask, schemas.PracticeTaskBase, schemas.PracticeTaskBase]):
-    pass
+    def get_multi_by_lesson(self, db: Session, *, lesson_id: int, skip: int = 0, limit: int = 100) -> List[models.PracticeTask]:
+        return db.query(self.model).filter(self.model.lesson_id == lesson_id).offset(skip).limit(limit).all()
 
 
 class CRUDQuiz(CRUDBase[models.Quiz, schemas.QuizBase, schemas.QuizBase]):
-    pass
+    def get_multi_by_lesson(self, db: Session, *, lesson_id: int, skip: int = 0, limit: int = 100) -> List[models.Quiz]:
+        return db.query(self.model).filter(self.model.lesson_id == lesson_id).offset(skip).limit(limit).all()
 
 
 class CRUDQuizAttempt(CRUDBase[models.QuizAttempt, schemas.QuizAttemptBase, schemas.QuizAttemptBase]):
@@ -80,6 +83,10 @@ class CRUDStudentResponse(
     pass
 
 
+class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserCreate]):
+    pass
+
+
 crud_subject = CRUDSubject(models.Subject)
 crud_lesson = CRUDLesson(models.Lesson)
 crud_student = CRUDStudent(models.Student)
@@ -88,3 +95,4 @@ crud_practice_task = CRUDPracticeTask(models.PracticeTask)
 crud_quiz = CRUDQuiz(models.Quiz)
 crud_quiz_attempt = CRUDQuizAttempt(models.QuizAttempt)
 crud_student_response = CRUDStudentResponse(models.StudentResponse)
+crud_user = CRUDUser(models.User)
