@@ -113,30 +113,6 @@ export async function getAiAssistance(
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Subject APIs
-export const updateSubject = (subjectId: string, subjectData: Subject) =>
-  api.put(`/subjects/${subjectId}/`, subjectData);
-export const patchSubject = (subjectId: string, subjectData: Subject) =>
-  api.patch(`/subjects/${subjectId}/`, subjectData);
-export const deleteSubject = (subjectId: string) =>
-  api.delete(`/subjects/${subjectId}/`);
-
 export async function getSubjects(params?: {
   grade_level?: number;
   language?: string;
@@ -151,25 +127,6 @@ export async function getSubject(id: string): Promise<Subject> {
   return response.data;
 }
 
-export async function createSubject(
-  subjectData: Omit<Subject, "id">
-): Promise<Subject> {
-  const response = await api.post("/subjects/", subjectData);
-  return response.data;
-}
-
-// Lesson APIs
-export const lessons = {
-  updateLesson: (subjectPk: string, lessonId: string, lessonData: Lesson) =>
-    api.put(`/subjects/${subjectPk}/lessons/${lessonId}/`, lessonData),
-  patchLesson: (subjectPk: string, lessonId: string, lessonData: Lesson) =>
-    api.patch(`/subjects/${subjectPk}/lessons/${lessonId}/`, lessonData),
-  deleteLesson: (subjectPk: string, lessonId: string) =>
-    api.delete(`/subjects/${subjectPk}/lessons/${lessonId}/`),
-  verifyLesson: (subjectPk: string, lessonId: string) =>
-    api.get(`/subjects/${subjectPk}/lessons/${lessonId}/verify/`),
-};
-
 export async function getLessons(subjectId: string): Promise<Lesson[]> {
   const response = await api.get(`/subjects/${subjectId}/lessons/`);
   return response.data;
@@ -182,43 +139,6 @@ export async function getLesson(
   const response = await api.get(`/subjects/${subjectId}/lessons/${lessonId}/`);
   return response.data;
 }
-
-export async function createLesson(
-  subjectId: string,
-  title: string
-): Promise<Lesson> {
-  const response = await api.post(`/subjects/${subjectId}/lessons/`, { title });
-  return response.data;
-}
-
-// Quiz APIs
-export const quizzes = {
-  createQuiz: (subjectPk: string, lessonPk: string, quizData: Quiz) =>
-    api.post(`/subjects/${subjectPk}/lessons/${lessonPk}/quizzes/`, quizData),
-  updateQuiz: (
-    subjectPk: string,
-    lessonPk: string,
-    quizId: string,
-    quizData: Quiz
-  ) =>
-    api.put(
-      `/subjects/${subjectPk}/lessons/${lessonPk}/quizzes/${quizId}/`,
-      quizData
-    ),
-  patchQuiz: (
-    subjectPk: string,
-    lessonPk: string,
-    quizId: string,
-    quizData: Quiz
-  ) =>
-    api.patch(
-      `/subjects/${subjectPk}/lessons/${lessonPk}/quizzes/${quizId}/`,
-      quizData
-    ),
-  deleteQuiz: (subjectPk: string, lessonPk: string, quizId: string) =>
-    api.delete(`/subjects/${subjectPk}/lessons/${lessonPk}/quizzes/${quizId}/`),
-  submitQuiz: (submissionData) => api.post("/quizzes/submit/", submissionData),
-};
 
 export async function getQuizzes(
   subjectId: string,
@@ -241,38 +161,6 @@ export async function getQuiz(
   return response.data;
 }
 
-// Practice Task APIs
-export const practiceTasks = {
-  createPracticeTask: (
-    subjectPk: string,
-    lessonPk: string,
-    taskData: PracticeTask
-  ) => api.post(`/subjects/${subjectPk}/lessons/${lessonPk}/tasks/`, taskData),
-  getPracticeTask: (subjectPk: string, lessonPk: string, taskId: string) =>
-    api.get(`/subjects/${subjectPk}/lessons/${lessonPk}/tasks/${taskId}/`),
-  updatePracticeTask: (
-    subjectPk: string,
-    lessonPk: string,
-    taskId: string,
-    taskData: PracticeTask
-  ) =>
-    api.put(
-      `/subjects/${subjectPk}/lessons/${lessonPk}/tasks/${taskId}/`,
-      taskData
-    ),
-  patchPracticeTask: (
-    subjectPk: string,
-    lessonPk: string,
-    taskId: string,
-    taskData: PracticeTask
-  ) =>
-    api.patch(
-      `/subjects/${subjectPk}/lessons/${lessonPk}/tasks/${taskId}/`,
-      taskData
-    ),
-  deletePracticeTask: (subjectPk: string, lessonPk: string, taskId: string) =>
-    api.delete(`/subjects/${subjectPk}/lessons/${lessonPk}/tasks/${taskId}/`),
-};
 
 export async function getPracticeTasks(
   subjectId: string,
@@ -283,17 +171,6 @@ export async function getPracticeTasks(
   );
   return response.data;
 }
-
-// Student Profile APIs
-export const student = {
-  updateProfile: (profileData: { grade_level: number; language: string }) =>
-    api.put("/student/profile/", profileData),
-  patchProfile: (profileData: { grade_level: number; language: string }) =>
-    api.patch("/student/profile/", profileData),
-  getQuizAttempts: () => api.get("/quiz-attempts/"),
-  getQuizAttempt: (attemptId: string) =>
-    api.get(`/quiz-attempts/${attemptId}/`),
-};
 
 
 // Enrollment APIs
@@ -314,10 +191,106 @@ export async function submitQuiz(submission: Partial<QuizSubmission>): Promise<{
 
 // Dashboard APIs
 
-
-
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   const response = await api.get("/dashboard/admin/");
   return response.data;
 }
+
+// Admin APIs
+export const adminAPI = {
+  // User Management
+  createUser: async (userData: Partial<User>): Promise<User> => {
+    const response = await api.post("/admin/users/", userData);
+    return response.data;
+  },
+
+  getUsers: async (params?: { skip?: number; limit?: number }): Promise<User[]> => {
+    const response = await api.get("/admin/users/", { params });
+    return response.data;
+  },
+
+  getUser: async (userId: string): Promise<User> => {
+    const response = await api.get(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  updateUser: async (userId: string, userData: Partial<User>): Promise<User> => {
+    const response = await api.put(`/admin/users/${userId}`, userData);
+    return response.data;
+  },
+
+  deleteUser: async (userId: string): Promise<User> => {
+    const response = await api.delete(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  // Admin Subject Management
+  createAdminSubject: async (subjectData: Omit<Subject, "id" | "total_lessons" | "completed_lessons" | "progress">): Promise<Subject> => {
+    const response = await api.post("/admin/subjects/", subjectData);
+    return response.data;
+  },
+
+  getAdminSubjects: async (params?: { skip?: number; limit?: number }): Promise<Subject[]> => {
+    const response = await api.get("/admin/subjects/", { params });
+    return response.data;
+  },
+
+  updateAdminSubject: async (subjectId: string, subjectData: Partial<Subject>): Promise<Subject> => {
+    const response = await api.put(`/admin/subjects/${subjectId}`, subjectData);
+    return response.data;
+  },
+
+  deleteAdminSubject: async (subjectId: string): Promise<Subject> => {
+    const response = await api.delete(`/admin/subjects/${subjectId}`);
+    return response.data;
+  },
+
+    // Admin Lesson Management
+  createAdminLesson: async (subjectId: string, lessonData: { title: string; content: string }): Promise<Lesson> => {
+    const response = await api.post(`/admin/subjects/${subjectId}/lessons/`, lessonData);
+    return response.data;
+  },
+
+  getAdminLessons: async (subjectId: string, params?: { skip?: number; limit?: number }): Promise<Lesson[]> => {
+    const response = await api.get(`/admin/subjects/${subjectId}/lessons/`, { params });
+    return response.data;
+  },
+
+  getAdminLesson: async (lessonId: string): Promise<Lesson> => {
+    const response = await api.get(`/admin/lessons/${lessonId}`);
+    return response.data;
+  },
+
+  updateAdminLesson: async (lessonId: string, lessonData: Partial<Lesson>): Promise<Lesson> => {
+    const response = await api.put(`/admin/lessons/${lessonId}`, lessonData);
+    return response.data;
+  },
+
+  deleteAdminLesson: async (lessonId: string): Promise<Lesson> => {
+    const response = await api.delete(`/admin/lessons/${lessonId}`);
+    return response.data;
+  },
+
+  // Admin Practice Task Management
+  createAdminPracticeTask: async (lessonId: string, taskData: { content: string; difficulty: "EA" | "ME" | "HA" }): Promise<PracticeTask> => {
+    const response = await api.post(`/admin/lessons/${lessonId}/practice_tasks/`, taskData);
+    return response.data;
+  },
+
+  getAdminPracticeTasks: async (lessonId: string, params?: { skip?: number; limit?: number }): Promise<PracticeTask[]> => {
+    const response = await api.get(`/admin/lessons/${lessonId}/practice_tasks/`, { params });
+    return response.data;
+  },
+
+  // Admin Quiz Management
+  createAdminQuiz: async (lessonId: string, quizData: { version: number }): Promise<Quiz> => {
+    const response = await api.post(`/admin/lessons/${lessonId}/quizzes/`, quizData);
+    return response.data;
+  },
+
+  getAdminQuizzes: async (lessonId: string, params?: { skip?: number; limit?: number }): Promise<Quiz[]> => {
+    const response = await api.get(`/admin/lessons/${lessonId}/quizzes/`, { params });
+    return response.data;
+  },
+};
 

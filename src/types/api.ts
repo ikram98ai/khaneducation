@@ -17,11 +17,11 @@ export interface AuthResponse {
 }
 
 export interface Subject {
-  id: string;
+  id?: string;
   name: string;
   description: string;
-  total_lessons: number;
-  completed_lessons: number;
+  total_lessons?: number;
+  completed_lessons?: number;
   progress?: number;
   grade_level: number;
   language: string;
@@ -29,14 +29,15 @@ export interface Subject {
 
 export interface Lesson {
   id: string;
-  instructor: string;
-  subject: string;
+  instructor_id: string;
+  subjectId: string;
   title: string;
   content: string;
   status: "VE" | "DR";
-  progress?: number; // Progress percentage
   created_at: string;
+  updated_at: string;
   verified_at: string | null;
+  progress?: number;
 }
 
 export interface Question {
@@ -119,8 +120,6 @@ export interface AdminDashboard {
   recent_lessons: Lesson[];
   recent_attempts: QuizAttempt[];
 }
-
-
 
 export interface AIAssistRequest {
   message: string;

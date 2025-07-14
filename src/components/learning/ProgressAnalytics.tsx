@@ -3,9 +3,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Clock, Target, Award, Calendar, Zap } from "lucide-react";
 
+import { User, Enrollment } from "@/types/api";
+
 interface ProgressAnalyticsProps {
-  user?: any;
-  enrollments?: any[];
+  user?: User;
+  enrollments?: Enrollment[];
 }
 
 export const ProgressAnalytics = ({ user, enrollments = [] }: ProgressAnalyticsProps) => {

@@ -1,566 +1,1457 @@
-# 🧠 AI Educational Backend (Fastapi)
+# Khan Education API Documentation
 
-This backend powers the AI Educational System UI and provides robust RESTful APIs to support role-based educational workflows for Admin (staff), Students, and AI Agents.
+This document provides comprehensive documentation for the Khan Education API, designed for seamless integration with the React web application.
 
-## 🔧 Core Features
+## Base URL
 
-*   **User Roles & Permissions**: Support for instructor, student, and AI agent roles with scoped access and views.
-*   **Lesson Management API**: Admin (staff) can create, edit, and publish lessons with metadata like subject, grade, language, and status.
-*   **Task & Quiz APIs**: Endpoints to manage student practice tasks and quizzes, including submissions and results.
-*   **Analytics Endpoints**: Provide insights into student performance, lesson engagement, and system usage.
-*   **AI Agent Interfaces**: APIs to integrate chat-based guidance, hint generation, and feedback mechanisms with AI models.
+The base URL for the API is `http://localhost:8000`.
 
-## 🛠 Tech Stack
+## Authentication
 
-*   Fastapi
-*   PostgreSQL
-*   JWT / Token Authentication
-*   Celery + Redis (optional for async processing)
-*   OpenAI / LangChain for AI capabilities
+The API uses JSON Web Tokens (JWT) for authentication. To access protected endpoints, you must first obtain an `access_token` by sending a `POST` request to the `/login` endpoint with your user credentials.
 
----
+Once you have the `access_token`, include it in the `Authorization` header of all subsequent requests in the format:
 
-## API Documentation
-
-### Authentication
-
-The API uses token-based authentication with Djoser and Simple JWT. Users must be authenticated to access most endpoints.
-
-### Roles
-
--   **Admin (staff):** Can create, manage, and view subject, lessons, practice tasks, and quizzes.
--   **Student:** Can view and interact with published lessons, take quizzes, and track their progress.
-
----
+```
+Authorization: Bearer <your_access_token>
+```
 
 ## Endpoints
 
-### Authentication
+### 1. Auth
 
--   **`POST /auth/users/`**
-    -   **Description:** Register a new user.
-    -   **Permissions:** AllowAny
-    -   **Request Body:**
-        ```json
-        {
-            "username": "",
-            "password": "",
-            "email": "",
-            "first_name": "",
-            "last_name": "",
-            "dp": null
-        }
-        ```
-    -   **Response:**
-        ```json
-        {
-          "username": "",
-          "email": "",
-          "is_staff": false,
-          "first_name": "",
-          "last_name": "",
-          "dp": null        
-        }
-        ```
+#### `POST /login`
 
--   **`POST /auth/jwt/create/`**
-    -   **Description:** Authenticate a user and receive JWT tokens.
-    -   **Permissions:** AllowAny
-    -   **Request Body:**
+*   **Description:** Authenticates a user and returns a JWT access token.
+*   **Request Body:**
+    ```json
+    {
+        "email": "user@example.com",
+        "password": "your_password"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "bearer"
+    }
+    ```
+*   **Error Responses:**
+    *   **403 Forbidden:**
         ```json
         {
-          "email": "user@example.com",
-          "password": "strongpassword"
+            "detail": "Invalid Credentials"
         }
         ```
-    -   **Response:**
+    *   **500 Internal Server Error:**
         ```json
         {
-          "access": "<access_token>",
-          "refresh": "<refresh_token>"
+            "detail": "Database error"
         }
         ```
 
--   **`POST /auth/jwt/refresh/`**
-    -   **Description:** Refresh an access token.
-    -   **Permissions:** AllowAny
-    -   **Request Body:**
-        ```json
-        {
-          "refresh": "<refresh_token>"
-        }
-        ```
-    -   **Response:**
-        ```json
-        {
-          "access": "<new_access_token>"
-        }
-        ```
+### 2. Admin (Requires Admin Role)
 
--   **`GET /auth/users/me/`**
-    -   **Description:** Retrieve the current user's details.
-    -   **Permissions:** IsAuthenticated
-    -   **Response:**
+#### `POST /admin/users/`
+
+*   **Description:** Creates a new user.
+*   **Request Body:**
+    ```json
+    {
+        "username": "newuser",
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "newuser@example.com",
+        "password": "StrongPassword123!"
+    }
+    ```
+*   **Success Response (201 Created):**
+    ```json
+    {
+        "username": "newuser",
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "newuser@example.com",
+        "role": "student",
+        "id": 1
+    }
+    ```
+*   **Error Responses:**
+    *   **400 Bad Request:**
         ```json
         {
-          "id": 2,
-          "username": "test",
-          "email": "test@gmail.co",
-          "is_staff": false,
-          "first_name": "test",
-          "last_name": "Khan",
-          "dp": null
+            "detail": "Email is already registered."
         }
         ```
-
--   **`PUT /auth/users/me/`**
-    -   **Description:** Update the current user's details.
-    -   **Permissions:** IsAuthenticated
-    -   **Request Body:**
+        or
         ```json
         {
-          "username": "test",
-          "first_name": "test",
-          "last_name": "Khan",
-          "dp": null       
+            "detail": "Username is already taken."
         }
         ```
-    -   **Response:** (Same as `GET /auth/users/me/`)
-  
-    **`POST /auth/users/set_email/`**
-    -   **Description:** Set a new email for the current user.
-    -   **Permissions:** IsAuthenticated
-    -   **Request Body:**
+        or
         ```json
         {
-          "current_password": "current_password",
-          "new_email": "new_email"
+            "detail": "Password must be at least 8 characters long, and include at least one uppercase letter, one lowercase letter, one digit, and one special character."
         }
         ```
-    -   **Response:** `204 No Content`
-
-### Subjects
-
--   **`GET /subjects/`**
-    -   **Description:** Retrieve a list of all subjects.
-    -   **Permissions:** IsAuthenticated
-    -   **Query Parameters:**
-        - `grade_level` (integer)
-        - `grade_level__gte` (integer)
-        - `grade_level__lte` (integer)
-        - `language__icontains` (string)
-        - `language__in` (array of strings)
-        - `ordering` (string)
-        - `page` (integer)
-        - `search` (string)
-    -   **Response:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **500 Internal Server Error:**
         ```json
         {
-          "count": 123,
-          "next": "http://api.example.org/subjects/?page=4",
-          "previous": "http://api.example.org/subjects/?page=2",
-          "results": [
-            {
-              "id": 0,
-              "name": "string",
-              "description": "string",
-              "grade_level": 12,
-              "language": "EN"
-            }
-          ]
+            "detail": "Could not create user"
         }
         ```
 
--   **`POST /subjects/`**
-    -   **Description:** Create a new subject.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:**
+#### `GET /admin/users/`
+
+*   **Description:** Retrieves a list of all users.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "username": "user1",
+            "first_name": "Alice",
+            "last_name": "Smith",
+            "email": "alice@example.com",
+            "role": "student",
+            "id": 1
+        },
+        {
+            "username": "user2",
+            "first_name": "Bob",
+            "last_name": "Johnson",
+            "email": "bob@example.com",
+            "role": "instructor",
+            "id": 2
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
         ```json
         {
-            "name": "Science",
-            "description": "The study of the natural and physical world.",
-            "grade_level": "GR8",
-            "language": "EN"
+            "detail": "No users found"
         }
         ```
-    -   **Response:** (Same as `GET /subjects/` for a single object)
-
--   **`GET /subjects/{id}/`**
-    -   **Description:** Retrieve a specific subject by its ID.
-    -   **Permissions:** IsAuthenticated
-    -   **Response:** (Same as `GET /subjects/` for a single object)
-
--   **`PUT /subjects/{id}/`**
-    -   **Description:** Update a specific subject.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:** (Same as `POST /subjects/`)
-    -   **Response:** (Same as `GET /subjects/` for a single object)
-
--   **`PATCH /subjects/{id}/`**
-    -   **Description:** Partially update a specific subject.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:** (Partial data from `POST /subjects/`)
-    -   **Response:** (Same as `GET /subjects/` for a single object)
-
--   **`DELETE /subjects/{id}/`**
-    -   **Description:** Delete a specific subject.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Response:** `204 No Content`
-
-### Languages
-
--   **`GET /languages/`**
-    -   **Description:** Retrieve a list of all languages.
-    -   **Permissions:** IsAuthenticated
-    -   **Response:**
-        ```json
-        [
-            {
-                "code": "EN",
-                "name": "English"
-            },
-            {
-                "code": "ES",
-                "name": "Spanish"
-            }
-        ]
-        ```
-
-### Lessons
-
--   **`GET /subjects/{subject_pk}/lessons/`**
-    -   **Description:** Retrieve a list of lessons for a specific subject.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Response:**
-        ```json
-        [
-            {
-                "id": 1,
-                "instructor": "instructor_username",
-                "subject": "Mathematics",
-                "title": "Introduction to Algebra",
-                "content": "...",
-                "status": "PU",
-                "created_at": "...",
-                "verified_at": "..."
-            }
-        ]
-        ```
-
--   **`POST /subjects/{subject_pk}/lessons/`**
-    -   **Description:** Create a new lesson for a subject. The content, practice task, and quiz are generated by an AI.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:**
+    *   **500 Internal Server Error:**
         ```json
         {
-            "title": "New Lesson Title"
-        }
-        ```
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/` for a single object)
-
--   **`GET /subjects/{subject_pk}/lessons/{id}/`**
-    -   **Description:** Retrieve a specific lesson.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/` for a single object)
-
--   **`PUT /subjects/{subject_pk}/lessons/{id}/`**
-    -   **Description:** Update a specific lesson.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:**
-        ```json
-        {
-            "title": "Updated Lesson Title",
-            "content": "Updated content..."
-        }
-        ```
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/` for a single object)
-
--   **`PATCH /subjects/{subject_pk}/lessons/{id}/`**
-    -   **Description:** Partially update a specific lesson.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:** (Partial data from `PUT /subjects/{subject_pk}/lessons/{id}/`)
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/` for a single object)
-
--   **`DELETE /subjects/{subject_pk}/lessons/{id}/`**
-    -   **Description:** Delete a specific lesson.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Response:** `204 No Content`
-
--   **`GET /subjects/{subject_pk}/lessons/{id}/verify/`**
-    -   **Description:** Verify a lesson.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Response:**
-        ```json
-        {
-            "status": "verified",
-            "verified_at": "..."
+            "detail": "Database error"
         }
         ```
 
-### Quizzes
+#### `GET /admin/users/{user_id}`
 
--   **`GET /subjects/{subject_pk}/lessons/{lesson_pk}/quizzes/`**
-    -   **Description:** Retrieve a list of quizzes for a specific lesson.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Response:**
-        ```json
-        [
-            {
-                "id": 1,
-                "lesson": 1,
-                "lesson_title": "Introduction to Algebra",
-                "version": 1,
-                "questions": [   
-                    {
-                        "id": 0,
-                        "question_text": "string",
-                        "correct_answer": "string"
-                    }
-                ],
-                "ai_generated": true,
-                "created_at": "..."
-            }
-        ]
-        ```
-
--   **`GET /subjects/{subject_pk}/lessons/{lesson_pk}/quizzes/{id}/`**
-    -   **Description:** Retrieve a specific quiz.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/{lesson_pk}/quizzes/` for a single object)
-
-
-### Practice Tasks
-
--   **`GET /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/`**
-    -   **Description:** Retrieve a list of practice tasks for a specific lesson.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Response:**
-        ```json
-        [
-            {
-                "id": 1,
-                "lesson": 1,
-                "lesson_title": "Introduction to Algebra",
-                "content": "...",
-                "difficulty": "ME",
-                "ai_generated": true,
-                "created_at": "..."
-            }
-        ]
-        ```
-
--   **`POST /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/`**
-    -   **Description:** Create a new practice task for a lesson.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:**
+*   **Description:** Retrieves a specific user by ID.
+*   **Path Parameters:**
+    *   `user_id` (int, required): The ID of the user to retrieve.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "username": "specificuser",
+        "first_name": "Jane",
+        "last_name": "Doe",
+        "email": "jane@example.com",
+        "role": "student",
+        "id": 3
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
         ```json
         {
-            "content": "New task content...",
-            "difficulty": "EA"
+            "detail": "User not found"
         }
         ```
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/` for a single object)
-
--   **`GET /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/{id}/`**
-    -   **Description:** Retrieve a specific practice task.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/` for a single object)
-
--   **`PUT /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/{id}/`**
-    -   **Description:** Update a specific practice task.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:**
+    *   **500 Internal Server Error:**
         ```json
         {
-            "content": "Updated task content...",
-            "difficulty": "HA"
-        }
-        ```
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/` for a single object)
-
--   **`PATCH /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/{id}/`**
-    -   **Description:** Partially update a specific practice task.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Request Body:** (Partial data from `PUT /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/{id}/`)
-    -   **Response:** (Same as `GET /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/` for a single object)
-
--   **`DELETE /subjects/{subject_pk}/lessons/{lesson_pk}/tasks/{id}/`**
-    -   **Description:** Delete a specific practice task.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Response:** `204 No Content`
-
-### Student Profile
-
--   **`POST /student/profile/create/`**
-    -   **Description:** Create a student profile for the currently authenticated user.
-    -   **Permissions:** IsAuthenticated
-    -   **Request Body:**
-        ```json
-        {
-            "language": "EN",
-            "current_grade": "GR10"
-        }
-        ```
-    -   **Response:**
-        ```json
-        {
-            "language": "EN",
-            "current_grade": "GR10"
+            "detail": "Database error"
         }
         ```
 
--   **`GET /student/profile/`**
-    -   **Description:** Retrieve the student profile for the currently authenticated user.
-    -   **Permissions:** IsAuthenticated
-    -   **Response:**
+#### `PUT /admin/users/{user_id}`
+
+*   **Description:** Updates an existing user by ID.
+*   **Path Parameters:**
+    *   `user_id` (int, required): The ID of the user to update.
+*   **Request Body:** (Partial updates are supported)
+    ```json
+    {
+        "first_name": "Janet",
+        "role": "instructor"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "username": "specificuser",
+        "first_name": "Janet",
+        "last_name": "Doe",
+        "email": "jane@example.com",
+        "role": "instructor",
+        "id": 3
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
         ```json
         {
+            "detail": "User not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not update item"
+        }
+        ```
+
+#### `DELETE /admin/users/{user_id}`
+
+*   **Description:** Deletes a user by ID.
+*   **Path Parameters:**
+    *   `user_id` (int, required): The ID of the user to delete.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "username": "deleteduser",
+        "first_name": "Old",
+        "last_name": "User",
+        "email": "olduser@example.com",
+        "role": "student",
+        "id": 4
+    }
+    ```
+    (Returns the deleted user object)
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "User not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not delete item"
+        }
+        ```
+
+#### `POST /admin/subjects/`
+
+*   **Description:** Creates a new subject.
+*   **Request Body:**
+    ```json
+    {
+        "name": "Mathematics",
+        "description": "Study of numbers, quantity, and space.",
+        "grade_level": 10,
+        "language": "English"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "name": "Mathematics",
+        "description": "Study of numbers, quantity, and space.",
+        "grade_level": 10,
+        "language": "English",
+        "id": 1,
+        "total_lessons": 0,
+        "completed_lessons": 0,
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create item"
+        }
+        ```
+
+#### `GET /admin/subjects/`
+
+*   **Description:** Retrieves a list of all subjects.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "name": "Mathematics",
+            "description": "Study of numbers, quantity, and space.",
+            "grade_level": 10,
+            "language": "English",
             "id": 1,
-            "username": "student_username",
-            "email": "student@example.com",
-            "first_name": "Student",
-            "last_name": "User",
-            "language": "EN",
-            "current_grade": "GR10"
+            "total_lessons": 5,
+            "completed_lessons": 2,
+            "progress": 40.0
         }
-        ```
-
--   **`PUT /student/profile/`**
-    -   **Description:** Update the student profile for the currently authenticated user.
-    -   **Permissions:** IsAuthenticated
-    -   **Request Body:**
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
         ```json
         {
-            "language": "FR",
-            "current_grade": "GR11"
+            "detail": "No subjects found"
         }
         ```
-    -   **Response:** (Same as `GET /student/profile/`)
-
--   **`PATCH /student/profile/`**
-    -   **Description:** Partially update the student profile for the currently authenticated user.
-    -   **Permissions:** IsAuthenticated
-    -   **Request Body:** (Partial data from `PUT /student/profile/`)
-    -   **Response:** (Same as `GET /student/profile/`)
-
-### Enrollments
-
--   **`GET /student/enrollments/`**
-    -   **Description:** List the subjects a student is enrolled in.
-    -   **Permissions:** IsAuthenticated
-    -   **Response:**
+    *   **500 Internal Server Error:**
         ```json
-        [
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `PUT /admin/subjects/{subject_id}`
+
+*   **Description:** Updates an existing subject by ID.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject to update.
+*   **Request Body:** (Partial updates are supported)
+    ```json
+    {
+        "description": "Advanced study of numbers."
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "name": "Mathematics",
+        "description": "Advanced study of numbers.",
+        "grade_level": 10,
+        "language": "English",
+        "id": 1,
+        "total_lessons": 5,
+        "completed_lessons": 2,
+        "progress": 40.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Subject not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not update item"
+        }
+        ```
+
+#### `DELETE /admin/subjects/{subject_id}`
+
+*   **Description:** Deletes a subject by ID.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject to delete.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "name": "Mathematics",
+        "description": "Study of numbers, quantity, and space.",
+        "grade_level": 10,
+        "language": "English",
+        "id": 1,
+        "total_lessons": 0,
+        "completed_lessons": 0,
+        "progress": 0.0
+    }
+    ```
+    (Returns the deleted subject object)
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Subject not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not delete item"
+        }
+        ```
+
+#### `POST /admin/subjects/{subject_id}/lessons/`
+
+*   **Description:** Creates a new lesson for a specific subject.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject to associate the lesson with.
+*   **Request Body:**
+    ```json
+    {
+        "title": "Introduction to Algebra",
+        "content": "This lesson covers basic algebraic concepts."
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "subject_id": 1,
+        "title": "Introduction to Algebra",
+        "content": "This lesson covers basic algebraic concepts.",
+        "id": 1,
+        "instructor_id": 1,
+        "status": "DR",
+        "created_at": "2024-07-14T12:00:00Z",
+        "verified_at": null,
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Subject not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create item"
+        }
+        ```
+
+#### `GET /admin/subjects/{subject_id}/lessons/`
+
+*   **Description:** Retrieves a list of all lessons for a specific subject.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject whose lessons to retrieve.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "subject_id": 1,
+            "title": "Introduction to Algebra",
+            "content": "This lesson covers basic algebraic concepts.",
+            "id": 1,
+            "instructor_id": 1,
+            "status": "DR",
+            "created_at": "2024-07-14T12:00:00Z",
+            "verified_at": null,
+            "progress": 0.0
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Subject not found"
+        }
+        ```
+        or
+        ```json
+        {
+            "detail": "No lessons found for this subject"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `GET /admin/lessons/{lesson_id}`
+
+*   **Description:** Retrieves a specific lesson by ID.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson to retrieve.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "subject_id": 1,
+        "title": "Introduction to Algebra",
+        "content": "This lesson covers basic algebraic concepts.",
+        "id": 1,
+        "instructor_id": 1,
+        "status": "DR",
+        "created_at": "2024-07-14T12:00:00Z",
+        "verified_at": null,
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `PUT /admin/lessons/{lesson_id}`
+
+*   **Description:** Updates an existing lesson by ID.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson to update.
+*   **Request Body:** (Partial updates are supported)
+    ```json
+    {
+        "title": "Updated Algebra Introduction"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "subject_id": 1,
+        "title": "Updated Algebra Introduction",
+        "content": "This lesson covers basic algebraic concepts.",
+        "id": 1,
+        "instructor_id": 1,
+        "status": "DR",
+        "created_at": "2024-07-14T12:00:00Z",
+        "verified_at": null,
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not update item"
+        }
+        ```
+
+#### `DELETE /admin/lessons/{lesson_id}`
+
+*   **Description:** Deletes a lesson by ID.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson to delete.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "subject_id": 1,
+        "title": "Introduction to Algebra",
+        "content": "This lesson covers basic algebraic concepts.",
+        "id": 1,
+        "instructor_id": 1,
+        "status": "DR",
+        "created_at": "2024-07-14T12:00:00Z",
+        "verified_at": null,
+        "progress": 0.0
+    }
+    ```
+    (Returns the deleted lesson object)
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not delete item"
+        }
+        ```
+
+#### `POST /admin/lessons/{lesson_id}/practice_tasks/`
+
+*   **Description:** Creates a new practice task for a specific lesson.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson to associate the practice task with.
+*   **Request Body:**
+    ```json
+    {
+        "content": "Solve for x: 2x + 5 = 15",
+        "difficulty": "MEDIUM"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "lesson_id": 1,
+        "content": "Solve for x: 2x + 5 = 15",
+        "difficulty": "MEDIUM",
+        "id": 1,
+        "ai_generated": true,
+        "created_at": "2024-07-14T12:00:00Z"
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create item"
+        }
+        ```
+
+#### `GET /admin/lessons/{lesson_id}/practice_tasks/`
+
+*   **Description:** Retrieves a list of all practice tasks for a specific lesson.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson whose practice tasks to retrieve.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "lesson_id": 1,
+            "content": "Solve for x: 2x + 5 = 15",
+            "difficulty": "MEDIUM",
+            "id": 1,
+            "ai_generated": true,
+            "created_at": "2024-07-14T12:00:00Z"
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+        or
+        ```json
+        {
+            "detail": "No tasks found for this lesson"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `POST /admin/lessons/{lesson_id}/quizzes/`
+
+*   **Description:** Creates a new quiz for a specific lesson.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson to associate the quiz with.
+*   **Request Body:**
+    ```json
+    {
+        "version": 1
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "lesson_id": 1,
+        "version": 1,
+        "id": 1,
+        "ai_generated": true,
+        "created_at": "2024-07-14T12:00:00Z",
+        "questions": []
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create item"
+        }
+        ```
+
+#### `GET /admin/lessons/{lesson_id}/quizzes/`
+
+*   **Description:** Retrieves a list of all quizzes for a specific lesson.
+*   **Path Parameters:**
+    *   `lesson_id` (int, required): The ID of the lesson whose quizzes to retrieve.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "lesson_id": 1,
+            "version": 1,
+            "id": 1,
+            "ai_generated": true,
+            "created_at": "2024-07-14T12:00:00Z",
+            "questions": []
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+        or
+        ```json
+        {
+            "detail": "No quizzes found for this lesson"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+### 3. Dashboard
+
+#### `GET /dashboard/student`
+
+*   **Description:** Retrieves the dashboard information for the current student.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "student": {
+            "user_id": 1,
+            "language": "English",
+            "current_grade": 10
+        },
+        "enrollments": [
             {
                 "id": 1,
-                "student": "student_username",
-                "subject": "Mathematics",
-                "enrolled_at": "..."
+                "student_id": 1,
+                "subject_id": 1,
+                "enrolled_at": "2024-07-14T12:00:00Z"
             }
-        ]
-        ```
-
-### Quiz Submission
-
--   **`POST /quizzes/submit/`**
-    -   **Description:** Submit answers for a quiz.
-    -   **Permissions:** IsAuthenticated, IsEnrolledStudent
-    -   **Request Body:**
-        ```json
-        {
-            "quiz_id": 1,
-            "responses": [
-                {"question_id": 1, "answer": "A"},
-                {"question_id": 2, "answer": "B"}
-            ]
-        }
-        ```
-    -   **Response:**
-        ```json
-        {
-            "attempt": { ... },
-            "ai_feedback": "...",
-            "regenerated_quiz": { ... } // Optional
-        }
-        ```
-
-### Quiz Attempts
-
--   **`GET /quiz-attempts/`**
-    -   **Description:** Retrieve a list of quiz attempts for the current user (or all attempts for admins).
-    -   **Permissions:** IsAuthenticated
-    -   **Response:**
-        ```json
-        [
+        ],
+        "recent_attempts": [
             {
+                "quiz_id": 1,
+                "student_id": 1,
                 "id": 1,
-                "student": { ... },
-                "quiz": { ... },
-                "start_time": "...",
-                "end_time": "...",
+                "start_time": "2024-07-14T12:00:00Z",
+                "end_time": "2024-07-14T12:10:00Z",
                 "score": 85.5,
                 "passed": true,
                 "cheating_detected": false
             }
+        ],
+        "practice_tasks": [
+            {
+                "lesson_id": 1,
+                "content": "Solve for x: 2x + 5 = 15",
+                "difficulty": "MEDIUM",
+                "id": 1,
+                "ai_generated": true,
+                "created_at": "2024-07-14T12:00:00Z"
+            }
         ]
-        ```
-
--   **`GET /quiz-attempts/{attempt_id}/`**
-    -   **Description:** Get detailed results of a quiz attempt.
-    -   **Permissions:** IsAuthenticated, IsStudentOwner
-    -   **Response:**
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as a student)
+    *   **500 Internal Server Error:**
         ```json
         {
-            "attempt": { ... },
-            "responses": [ ... ]
+            "detail": "Database error"
         }
         ```
 
-### Dashboards
+#### `GET /dashboard/student/stats`
 
--   **`GET /dashboard/student/`**
-    -   **Description:** Get dashboard data for the current student.
-    -   **Permissions:** IsAuthenticated
-    -   **Response:**
+*   **Description:** Retrieves statistical data for the current student's dashboard.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "completedLessons": 10,
+        "totalLessons": 15,
+        "avgScore": 75.2,
+        "streak": 5
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as a student)
+    *   **500 Internal Server Error:**
         ```json
         {
-            "student": { ... },
-            "enrollments": [ ... ],
-            "recent_attempts": [ ... ],
-            "practice_tasks": [ ... ]
+            "detail": "Database error"
         }
         ```
 
--   **`GET /dashboard/admin/`**
-    -   **Description:** Get dashboard data for an admin user.
-    -   **Permissions:** IsStaffOrAdmin
-    -   **Response:**
+#### `GET /dashboard/admin`
+
+*   **Description:** Retrieves dashboard information for administrators.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "total_students": 100,
+        "total_lessons": 500,
+        "total_subjects": 10,
+        "total_quizzes": 200,
+        "recent_lessons": [
+            {
+                "subject_id": 1,
+                "title": "Recent Lesson 1",
+                "content": "...",
+                "id": 10,
+                "instructor_id": 1,
+                "status": "VE",
+                "created_at": "2024-07-13T10:00:00Z",
+                "verified_at": "2024-07-13T11:00:00Z",
+                "progress": 100.0
+            }
+        ],
+        "recent_attempts": [
+            {
+                "quiz_id": 5,
+                "student_id": 20,
+                "id": 50,
+                "start_time": "2024-07-13T09:00:00Z",
+                "end_time": "2024-07-13T09:30:00Z",
+                "score": 90.0,
+                "passed": true,
+                "cheating_detected": false
+            }
+        ]
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated as admin)
+    *   **500 Internal Server Error:**
         ```json
         {
-            "total_students": 100,
-            "total_lessons": 50,
-            "total_subjects": 10,
-            "total_quizzes": 200,
-            "recent_lessons": [ ... ],
-            "recent_attempts": [ ... ]
+            "detail": "Database error"
         }
         ```
 
-### AI Assistant
+### 4. Lessons
 
--   **`POST /ai/assist/`**
-    -   **Description:** Provide the message and context and get assist by AI.
-    -   **Permissions:** IsAuthenticated
-    -  **Request Body:**
+#### `POST /subjects/{subject_id}/lessons/`
+
+*   **Description:** Creates a new lesson for a specific subject.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject to associate the lesson with.
+*   **Request Body:**
+    ```json
+    {
+        "title": "New Lesson Title",
+        "content": "Content of the new lesson."
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "subject_id": 1,
+        "title": "New Lesson Title",
+        "content": "Content of the new lesson.",
+        "id": 2,
+        "instructor_id": 1,
+        "status": "DR",
+        "created_at": "2024-07-14T13:00:00Z",
+        "verified_at": null,
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **400 Bad Request:**
         ```json
         {
-            "message":"",
-            "context":""
+            "detail": "Error message from service (e.g., 'Subject not found')"
         }
         ```
-    -   **Response:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **500 Internal Server Error:**
         ```json
         {
-            "response": ""
+            "detail": "Database error"
+        }
+        ```
+
+#### `GET /subjects/{subject_id}/lessons/`
+
+*   **Description:** Retrieves a list of all lessons for a specific subject.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject whose lessons to retrieve.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "subject_id": 1,
+            "title": "Lesson 1 for Subject 1",
+            "content": "...",
+            "id": 1,
+            "instructor_id": 1,
+            "status": "DR",
+            "created_at": "2024-07-14T12:00:00Z",
+            "verified_at": null,
+            "progress": 0.0
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "No lessons found for this subject"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `PUT /subjects/{subject_id}/lessons/{lesson_id}/verify`
+
+*   **Description:** Verifies a lesson, changing its status to 'VERIFIED'.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject the lesson belongs to.
+    *   `lesson_id` (int, required): The ID of the lesson to verify.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "subject_id": 1,
+        "title": "Lesson Title",
+        "content": "...",
+        "id": 1,
+        "instructor_id": 1,
+        "status": "VE",
+        "created_at": "2024-07-14T12:00:00Z",
+        "verified_at": "2024-07-14T14:00:00Z",
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Lesson not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+### 5. Quizzes
+
+#### `POST /quizzes/submit`
+
+*   **Description:** Submits a student's responses to a quiz.
+*   **Request Body:**
+    ```json
+    {
+        "quiz_id": 1,
+        "responses": [
+            {
+                "question_id": 101,
+                "student_answer": "Answer to question 1"
+            },
+            {
+                "question_id": 102,
+                "student_answer": "Answer to question 2"
+            }
+        ]
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "message": "Quiz submitted successfully",
+        "attempt_id": 123,
+        "score": 85.5,
+        "passed": true
+    }
+    ```
+*   **Error Responses:**
+    *   **400 Bad Request:**
+        ```json
+        {
+            "detail": "Error message from service (e.g., 'Quiz not found', 'Invalid responses')"
+        }
+        ```
+    *   **401 Unauthorized:** (If not authenticated as a student)
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `GET /quizzes/attempts`
+
+*   **Description:** Retrieves a list of all quiz attempts, optionally filtered by student ID.
+*   **Query Parameters:**
+    *   `student_id` (int, optional): Filter attempts by a specific student ID.
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "quiz_id": 1,
+            "student_id": 1,
+            "id": 1,
+            "start_time": "2024-07-14T12:00:00Z",
+            "end_time": "2024-07-14T12:10:00Z",
+            "score": 85.5,
+            "passed": true,
+            "cheating_detected": false
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "No quiz attempts found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `GET /quizzes/attempts/{attempt_id}`
+
+*   **Description:** Retrieves a specific quiz attempt by ID.
+*   **Path Parameters:**
+    *   `attempt_id` (int, required): The ID of the quiz attempt to retrieve.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "quiz_id": 1,
+        "student_id": 1,
+        "id": 1,
+        "start_time": "2024-07-14T12:00:00Z",
+        "end_time": "2024-07-14T12:10:00Z",
+        "score": 85.5,
+        "passed": true,
+        "cheating_detected": false
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Attempt not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+### 6. Subjects
+
+#### `POST /subjects/`
+
+*   **Description:** Creates a new subject.
+*   **Request Body:**
+    ```json
+    {
+        "name": "History",
+        "description": "Study of past events.",
+        "grade_level": 9,
+        "language": "English"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "name": "History",
+        "description": "Study of past events.",
+        "grade_level": 9,
+        "language": "English",
+        "id": 2,
+        "total_lessons": 0,
+        "completed_lessons": 0,
+        "progress": 0.0
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create item"
+        }
+        ```
+
+#### `GET /subjects/`
+
+*   **Description:** Retrieves a list of all subjects.
+*   **Query Parameters:**
+    *   `skip` (int, optional): Number of items to skip (default: 0).
+    *   `limit` (int, optional): Maximum number of items to return (default: 100).
+*   **Success Response (200 OK):**
+    ```json
+    [
+        {
+            "name": "History",
+            "description": "Study of past events.",
+            "grade_level": 9,
+            "language": "English",
+            "id": 2,
+            "total_lessons": 3,
+            "completed_lessons": 1,
+            "progress": 33.33
+        }
+    ]
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "No subjects found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `GET /subjects/{subject_id}`
+
+*   **Description:** Retrieves a specific subject by ID.
+*   **Path Parameters:**
+    *   `subject_id` (int, required): The ID of the subject to retrieve.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "name": "History",
+        "description": "Study of past events.",
+        "grade_level": 9,
+        "language": "English",
+        "id": 2,
+        "total_lessons": 3,
+        "completed_lessons": 1,
+        "progress": 33.33
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "Subject not found"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+### 7. Users
+
+#### `POST /users/`
+
+*   **Description:** Creates a new user.
+*   **Request Body:**
+    ```json
+    {
+        "username": "newstudent",
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": "alice.smith@example.com",
+        "password": "SecurePassword123!"
+    }
+    ```
+*   **Success Response (201 Created):**
+    ```json
+    {
+        "username": "newstudent",
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": "alice.smith@example.com",
+        "role": "student",
+        "id": 5
+    }
+    ```
+*   **Error Responses:**
+    *   **400 Bad Request:**
+        ```json
+        {
+            "detail": "Email is already registered."
+        }
+        ```
+        or
+        ```json
+        {
+            "detail": "Username is already taken."
+        }
+        ```
+        or
+        ```json
+        {
+            "detail": "Password must be at least 8 characters long, and include at least one uppercase letter, one lowercase letter, one digit, and one special character."
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create user"
+        }
+        ```
+
+#### `POST /users/profile/me`
+
+*   **Description:** Creates a student profile for the currently authenticated user.
+*   **Request Body:**
+    ```json
+    {
+        "language": "English",
+        "current_grade": 10
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "user": {
+            "username": "currentuser",
+            "first_name": "Current",
+            "last_name": "User",
+            "email": "current@example.com",
+            "role": "student",
+            "id": 1
+        },
+        "student_profile": {
+            "user_id": 1,
+            "language": "English",
+            "current_grade": 10
+        }
+    }
+    ```
+*   **Error Responses:**
+    *   **400 Bad Request:**
+        ```json
+        {
+            "detail": "Student profile already exists for this user"
+        }
+        ```
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not create student profile"
+        }
+        ```
+
+#### `GET /users/profile/me`
+
+*   **Description:** Retrieves the profile information for the currently authenticated user (including student profile if available).
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "user": {
+            "id": 1,
+            "username": "currentuser",
+            "first_name": "Current",
+            "last_name": "User",
+            "role": "student",
+            "email": "current@example.com"
+        },
+        "student_profile": {
+            "user_id": 1,
+            "language": "English",
+            "current_grade": 10
+        }
+    }
+    ```
+    (If no student profile exists, `student_profile` will be `null`)
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `PUT /users/profile/me`
+
+*   **Description:** Updates the profile information for the currently authenticated user.
+*   **Request Body:** (Partial updates are supported)
+    ```json
+    {
+        "first_name": "Alice Updated",
+        "email": "alice.updated@example.com"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "username": "currentuser",
+        "first_name": "Alice Updated",
+        "last_name": "Smith",
+        "email": "alice.updated@example.com",
+        "role": "student",
+        "id": 1
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not update profile"
+        }
+        ```
+
+#### `GET /users/{id}`
+
+*   **Description:** Retrieves a specific user's profile by ID.
+*   **Path Parameters:**
+    *   `id` (int, required): The ID of the user to retrieve.
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "user": {
+            "id": 1,
+            "username": "someuser",
+            "first_name": "Some",
+            "last_name": "User",
+            "role": "student",
+            "email": "some@example.com"
+        },
+        "student_profile": {
+            "user_id": 1,
+            "language": "English",
+            "current_grade": 10
+        }
+    }
+    ```
+    (If no student profile exists, `student_profile` will be `null`)
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "User with id: {id} does not exist"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Database error"
+        }
+        ```
+
+#### `PUT /users/{id}`
+
+*   **Description:** Updates a specific user's information by ID.
+*   **Path Parameters:**
+    *   `id` (int, required): The ID of the user to update.
+*   **Request Body:** (Partial updates are supported)
+    ```json
+    {
+        "first_name": "UpdatedName",
+        "role": "instructor"
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+        "username": "someuser",
+        "first_name": "UpdatedName",
+        "last_name": "User",
+        "email": "some@example.com",
+        "role": "instructor",
+        "id": 1
+    }
+    ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "User with id: {id} does not exist"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not update user"
+        }
+        ```
+
+#### `DELETE /users/{id}`
+
+*   **Description:** Deletes a user by ID.
+*   **Path Parameters:**
+    *   `id` (int, required): The ID of the user to delete.
+*   **Success Response (204 No Content):** (No response body)
+*   **Error Responses:**
+    *   **401 Unauthorized:** (If not authenticated)
+    *   **404 Not Found:**
+        ```json
+        {
+            "detail": "user with id: {id} does not exist"
+        }
+        ```
+    *   **500 Internal Server Error:**
+        ```json
+        {
+            "detail": "Could not delete user"
         }
         ```

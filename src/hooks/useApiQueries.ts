@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -20,12 +21,15 @@ import {
   getLanguages,
   getAiAssistance,
   getStudentDashboardStatistics,
+  getAdminDashboard,
+  adminAPI,
 } from "@/services/api";
 import {
   User,
   QuizSubmission,
   AIAssistRequest,
-  StudentProfile,
+  Subject,
+  Lesson
 } from "@/types/api";
 
 // Auth hooks
@@ -49,7 +53,7 @@ export const useLogin = () => {
         description: "Successfully logged in.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError) => {
       setLoading(false);
       toast({
         title: "Login Failed",
@@ -79,7 +83,7 @@ export const useRegister = () => {
         description: "Welcome to our educational platform.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError) => {
       setLoading(false);
       toast({
         title: "Registration Failed",
@@ -106,7 +110,7 @@ export const useCreateProfile = () => {
         description: "Your learning profile has been set up.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError) => {
       toast({
         title: "Profile Creation Failed",
         description:
@@ -206,7 +210,7 @@ export const useSubmitQuiz = () => {
         variant: passed ? "default" : "destructive",
       });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError) => {
       toast({
         title: "Quiz Submission Failed",
         description:
@@ -264,7 +268,7 @@ export const useAiAssistance = () => {
 
   return useMutation({
     mutationFn: (request: AIAssistRequest) => getAiAssistance(request),
-    onError: (error: any) => {
+    onError: (error: AxiosError) => {
       toast({
         title: "AI Assistant Error",
         description:
@@ -283,5 +287,270 @@ export const useStudentDashboardStatistics = () => {
     queryFn: getStudentDashboardStatistics,
     enabled: isAuthenticated,
     staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Admin hooks with comprehensive error handling
+export const useAdminUsers = (params?: { skip?: number; limit?: number }) => {
+  const { profile } = useAuthStore();
+  const isAdmin = profile?.user?.role === 'admin';
+
+  return useQuery({
+    queryKey: ["admin-users", params],
+    queryFn: () => adminAPI.getUsers(params),
+    enabled: isAdmin,
+    retry: 3,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (userData: Partial<User>) => adminAPI.createUser(userData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({
+        title: "User Created",
+        description: "New user has been created successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Create User",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ userId, userData }: { userId: string; userData: Partial<User> }) =>
+      adminAPI.updateUser(userId, userData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({
+        title: "User Updated",
+        description: "User information has been updated successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Update User",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (userId: string) => adminAPI.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({
+        title: "User Deleted",
+        description: "User has been deleted successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Delete User",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useAdminSubjects = (params?: { skip?: number; limit?: number }) => {
+  const { profile } = useAuthStore();
+  const isAdmin = profile?.user?.role === 'admin';
+
+  return useQuery({
+    queryKey: ["admin-subjects", params],
+    queryFn: () => adminAPI.getAdminSubjects(params),
+    enabled: isAdmin,
+    retry: 3,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCreateAdminSubject = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (subjectData: Omit<Subject, "id" | "total_lessons" | "completed_lessons" | "progress">) =>
+      adminAPI.createAdminSubject(subjectData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-subjects"] });
+      toast({
+        title: "Subject Created",
+        description: "New subject has been created successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Create Subject",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useUpdateAdminSubject = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ subjectId, subjectData }: { subjectId: string; subjectData: Partial<Subject> }) =>
+      adminAPI.updateAdminSubject(subjectId, subjectData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-subjects"] });
+      toast({
+        title: "Subject Updated",
+        description: "Subject has been updated successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Update Subject",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteAdminSubject = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (subjectId: string) => adminAPI.deleteAdminSubject(subjectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-subjects"] });
+      toast({
+        title: "Subject Deleted",
+        description: "Subject has been deleted successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Delete Subject",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useAdminDashboard = () => {
+  const { profile } = useAuthStore();
+  const isAdmin = profile?.user?.role === 'admin';
+
+  return useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: getAdminDashboard,
+    enabled: isAdmin,
+    staleTime: 2 * 60 * 1000,
+    retry: 3,
+  });
+};
+
+export const useAdminLessons = (subjectId?: string, params?: { skip?: number; limit?: number }) => {
+  const { profile } = useAuthStore();
+  const isAdmin = profile?.user?.role === 'admin';
+
+  return useQuery({
+    queryKey: ["admin-lessons", subjectId, params],
+    queryFn: () => adminAPI.getAdminLessons(subjectId as string, params),
+    enabled: isAdmin && !!subjectId,
+    retry: 3,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCreateAdminLesson = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ subjectId, lessonData }: { subjectId: string; lessonData: { title: string; content: string } }) =>
+      adminAPI.createAdminLesson(subjectId, lessonData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
+      toast({
+        title: "Lesson Created",
+        description: "New lesson has been created successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Create Lesson",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useUpdateAdminLesson = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ lessonId, lessonData }: { lessonId: string; lessonData: Partial<Lesson> }) =>
+      adminAPI.updateAdminLesson(lessonId, lessonData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
+      toast({
+        title: "Lesson Updated",
+        description: "Lesson information has been updated successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Update Lesson",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteAdminLesson = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (lessonId: string) => adminAPI.deleteAdminLesson(lessonId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
+      toast({
+        title: "Lesson Deleted",
+        description: "Lesson has been deleted successfully.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Delete Lesson",
+        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        variant: "destructive",
+      });
+    },
   });
 };
