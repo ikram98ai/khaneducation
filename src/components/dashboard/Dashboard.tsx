@@ -149,7 +149,7 @@ export const Dashboard = () => {
             style={{ animationDelay: "0.6s" }}
           >
             <h2 className="text-2xl font-bold mb-6">Your Subjects</h2>
-            {enrolledSubjects.map(({ subject }, index) => (
+            {enrolledSubjects.map(( subject , index) => (
               <Link to={`/subjects/${subject.id}`} key={subject.id}>
                 <Card
                   key={subject.id}

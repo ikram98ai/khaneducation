@@ -77,10 +77,8 @@ export interface StudentProfile {
   student?: Student;
 }
 
-export interface Enrollment {
-  id: string;
-  student: string;
-  subject: Subject;
+export interface Enrollment extends Subject{
+
   enrolled_at: string;
 }
 
