@@ -19,6 +19,7 @@ def login(
 ):
     try:
         user = db.query(models.User).filter(models.User.email == user_credentials.email).first()
+        
         if not user:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials")
 
@@ -38,6 +39,6 @@ def login(
     except SQLAlchemyError as e:
         logger.error(f"Database error during login for email {user_credentials.email}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during login: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
+    # except Exception as e:
+    #     logger.error(f"An unexpected error occurred during login: {e}")
+    #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")

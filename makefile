@@ -12,6 +12,9 @@ format:
 migrate:
 	uv run alembic revision --autogenerate -m "auto_$(shell date +%s)_$(m)" && uv run alembic upgrade head
 
+adminuser:
+	uv run python create_admin.py -u="$(u)" -e="$(e)"
+
 dev: 
 	uv run fastapi dev app/main.py
 

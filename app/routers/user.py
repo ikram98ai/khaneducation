@@ -50,7 +50,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user")
 
 
-@router.post("/profile/me", response_model=schemas.User)
+@router.post("/profile/me", response_model=schemas.StudentProfile)
 def create_me(profile_data: schemas.StudentCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     try:
         existing_student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
@@ -100,7 +100,7 @@ def get_me(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.put("/profile/me", response_model=schemas.User)
+@router.put("/profile/me", response_model=schemas.StudentProfile)
 def update_me(user_data: schemas.UserCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     try:
         user_to_update = db.query(models.User).filter(models.User.id == user.id).first()

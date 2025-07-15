@@ -116,7 +116,11 @@ class CRUDStudentResponse(
 
 
 class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserCreate]):
-    pass
+    def get_by_email(self, db: Session, *, email: str) -> Optional[models.User]:
+        return db.query(self.model).filter(self.model.email == email).first()
+
+    def get_by_username(self, db: Session, *, username: str) -> Optional[models.User]:
+        return db.query(self.model).filter(self.model.username == username).first()
 
 
 crud_subject = CRUDSubject(models.Subject)
