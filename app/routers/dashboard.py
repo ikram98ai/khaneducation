@@ -29,7 +29,17 @@ def student_dashboard(
     try:
         return {
             "student": current_student,
-            "enrollments": current_student.enrollments,
+            "enrollments": [
+                schemas.EnrolledSubject(
+                    id=enrollment.subject.id,
+                    name=enrollment.subject.name,
+                    description=enrollment.subject.description,
+                    grade_level=enrollment.subject.grade_level,
+                    language=enrollment.subject.language,
+                    enrolled_at=enrollment.enrolled_at,
+                )
+                for enrollment in current_student.enrollments
+            ],
             "recent_attempts": current_student.quiz_attempts[:5],
             "practice_tasks": get_student_practice_tasks(db, current_student.user_id),
         }

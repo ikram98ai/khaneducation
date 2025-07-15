@@ -56,6 +56,13 @@ class EnrollmentBase(BaseModel):
     subject_id: int
 
 
+class EnrolledSubject(Subject):
+    enrolled_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class Enrollment(EnrollmentBase):
     id: int
     enrolled_at: datetime
@@ -145,7 +152,7 @@ class QuizSubmission(BaseModel):
 
 class StudentDashboard(BaseModel):
     student: "Student"
-    enrollments: List["Enrollment"]
+    enrollments: List["EnrolledSubject"]
     recent_attempts: List["QuizAttempt"]
     practice_tasks: List["PracticeTask"]
 

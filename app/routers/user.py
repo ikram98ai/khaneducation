@@ -1,7 +1,7 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from .. import models, schemas, utils
+from .. import models, schemas, utils, crud
 from ..database import get_db
 from ..dependencies import get_current_user
 import logging
@@ -61,6 +61,19 @@ def create_me(profile_data: schemas.StudentCreate, db: Session = Depends(get_db)
         db.add(new_student)
         db.commit()
         db.refresh(new_student)
+
+        # Find matching subjects and enroll the student
+        matching_subjects = db.query(models.Subject).filter(
+            models.Subject.grade_level == new_student.current_grade,
+            models.Subject.language == new_student.language
+        ).all()
+
+        for subject in matching_subjects:
+            enrollment = models.Enrollment(student_id=new_student.user_id, subject_id=subject.id)
+            db.add(enrollment)
+
+        if matching_subjects:
+            db.commit()
 
         return schemas.StudentProfile(user=user, student_profile=new_student)
     except SQLAlchemyError as e:
