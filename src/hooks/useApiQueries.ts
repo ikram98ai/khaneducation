@@ -23,6 +23,7 @@ import {
   getStudentDashboardStatistics,
   getAdminDashboard,
   adminAPI,
+  getSubjectDetail,
 } from "@/services/api";
 import {
   User,
@@ -152,6 +153,13 @@ export const useSubject = (id: string) => {
   });
 };
 
+export const useSubjectDetail = (id: string) => {
+  return useQuery({
+    queryKey: ["subject", id],
+    queryFn: () => getSubjectDetail(id),
+    enabled: !!id,
+  });
+};
 // Lesson hooks
 export const useLessons = (subjectId: string) => {
   return useQuery({

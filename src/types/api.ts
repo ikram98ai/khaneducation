@@ -40,6 +40,10 @@ export interface Lesson {
   progress?: number;
 }
 
+export interface SubjectDetail extends Subject {
+  lessons?: Lesson[]
+}
+
 export interface Question {
   id: string;
   question_text: string;

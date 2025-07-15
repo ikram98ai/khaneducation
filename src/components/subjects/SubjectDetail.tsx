@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useSubject, useLessons } from "@/hooks/useApiQueries";
+import {  useSubjectDetail } from "@/hooks/useApiQueries";
 import { Link, useParams } from "react-router-dom";
 import { AIAssistant } from "../learning/AIAssistant";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,18 +15,13 @@ export const SubjectDetail = () => {
     data: subject,
     isLoading: isSubjectLoading,
     isError: isSubjectError,
-  } = useSubject(subjectId);
-  const {
-    data: lessons,
-    isLoading: areLessonsLoading,
-    isError: areLessonsError,
-  } = useLessons(subjectId);
+  } = useSubjectDetail(subjectId);
 
   const onBack = () => {
     window.history.back();
   };
 
-  if (isSubjectLoading || areLessonsLoading) {
+  if (isSubjectLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6">
         <Skeleton className="h-10 w-48 mb-8" />
@@ -40,7 +35,7 @@ export const SubjectDetail = () => {
     );
   }
 
-  if (isSubjectError || areLessonsError || !subject || !lessons) {
+  if (isSubjectError || !subject) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6 flex items-center justify-center">
         <Alert variant="destructive" className="max-w-lg">
@@ -118,7 +113,7 @@ export const SubjectDetail = () => {
           </div>
 
           {/* Lessons Content */}
-          {lessons.map((lesson, index) => (
+          {subject.lessons.map((lesson, index) => (
             <Link
               to={`/subjects/${subject.id}/lessons/${lesson.id}`}
               key={lesson.id}

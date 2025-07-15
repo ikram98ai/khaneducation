@@ -15,6 +15,7 @@ import {
   AIAssistResponse,
   QuizSubmission,
   StudentDashboardStats,
+  SubjectDetail,
 } from "@/types/api";
 
 import axios from "axios";
@@ -123,6 +124,11 @@ export async function getSubjects(params?: {
 }
 
 export async function getSubject(id: string): Promise<Subject> {
+  const response = await api.get(`/subjects/${id}/`);
+  return response.data;
+}
+
+export async function getSubjectDetail(id: string): Promise<SubjectDetail> {
   const response = await api.get(`/subjects/${id}/`);
   return response.data;
 }
