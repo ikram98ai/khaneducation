@@ -27,8 +27,6 @@ class Subject(SubjectBase):
         from_attributes = True
 
 
-
-
 class LessonBase(BaseModel):
     title: str = Field(..., max_length=255)
     content: str
@@ -46,9 +44,13 @@ class Lesson(LessonBase):
     status: LessonStatus
     created_at: datetime
     verified_at: Optional[datetime] = None
+    progress: Optional[float] = 0.0
 
     class Config:
         from_attributes = True
+
+class SubjectDetail(Subject):
+    lessons: List[Lesson] = []
 
 
 class EnrollmentBase(BaseModel):
@@ -58,6 +60,9 @@ class EnrollmentBase(BaseModel):
 
 class EnrolledSubject(Subject):
     enrolled_at: datetime
+    total_lessons: Optional[int] = None
+    completed_lessons: Optional[int] = None
+    progress: Optional[float] = None
 
     class Config:
         from_attributes = True

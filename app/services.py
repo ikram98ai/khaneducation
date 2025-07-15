@@ -164,7 +164,7 @@ def get_student_dashboard_stats(db: Session, student_id: int) -> schemas.Dashboa
     # Total lessons
     enrolled_subjects = db.query(models.Enrollment.subject_id).filter(models.Enrollment.student_id == student_id).subquery()
 
-    total_lessons = db.query(models.Lesson).filter(models.Lesson.subject_id.in_(enrolled_subjects)).count()
+    total_lessons = db.query(models.Lesson).filter(models.Lesson.subject_id.in_(enrolled_subjects.select())).count()
 
     # Average score
     avg_score = db.query(func.avg(models.QuizAttempt.score)).filter(models.QuizAttempt.student_id == student_id).scalar() or 0

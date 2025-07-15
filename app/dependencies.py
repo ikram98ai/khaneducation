@@ -73,7 +73,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
 
 
-async def get_current_student(user: UserSchema = Depends(get_current_user), db: Session = Depends(get_db)) -> StudentSchema:
+async def get_current_student(db: Session = Depends(get_db), user: UserSchema = Depends(get_current_user)) -> StudentSchema:
     if user.role != UserRole.STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

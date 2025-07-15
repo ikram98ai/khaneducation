@@ -15,7 +15,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 def get_student_practice_tasks(db: Session, student_id: int):
     try:
         enrolled_subjects = db.query(models.Enrollment.subject_id).filter(models.Enrollment.student_id == student_id).subquery()
-        return db.query(models.PracticeTask).join(models.Lesson).filter(models.Lesson.subject_id.in_(enrolled_subjects)).limit(10).all()
+        return db.query(models.PracticeTask).join(models.Lesson).filter(models.Lesson.subject_id.in_(enrolled_subjects.select())).limit(10).all()
     except SQLAlchemyError as e:
         logger.error(f"Error fetching practice tasks for student {student_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
@@ -27,19 +27,37 @@ def student_dashboard(
     current_student: models.Student = Depends(get_current_student),
 ):
     try:
+        enrollments_data = []
+        for enrollment in current_student.enrollments:
+            subject = enrollment.subject
+            total_lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject.id).count()
+            
+            completed_lessons_query = db.query(models.Lesson.id).join(models.Quiz).join(models.QuizAttempt).filter(
+                models.Lesson.subject_id == subject.id,
+                models.QuizAttempt.student_id == current_student.user_id,
+                models.QuizAttempt.passed == True
+            ).distinct()
+            completed_lessons = completed_lessons_query.count()
+
+            progress = (completed_lessons / total_lessons) * 100 if total_lessons > 0 else 0
+
+            enrollments_data.append(
+                schemas.EnrolledSubject(
+                    id=subject.id,
+                    name=subject.name,
+                    description=subject.description,
+                    grade_level=subject.grade_level,
+                    language=subject.language,
+                    enrolled_at=enrollment.enrolled_at,
+                    total_lessons=total_lessons,
+                    completed_lessons=completed_lessons,
+                    progress=progress,
+                )
+            )
+
         return {
             "student": current_student,
-            "enrollments": [
-                schemas.EnrolledSubject(
-                    id=enrollment.subject.id,
-                    name=enrollment.subject.name,
-                    description=enrollment.subject.description,
-                    grade_level=enrollment.subject.grade_level,
-                    language=enrollment.subject.language,
-                    enrolled_at=enrollment.enrolled_at,
-                )
-                for enrollment in current_student.enrollments
-            ],
+            "enrollments": enrollments_data,
             "recent_attempts": current_student.quiz_attempts[:5],
             "practice_tasks": get_student_practice_tasks(db, current_student.user_id),
         }
