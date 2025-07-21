@@ -21,7 +21,7 @@ def get_student_practice_tasks(db: Session, student_id: int):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.get("/student", response_model=schemas.StudentDashboard)
+@router.get("/student/", response_model=schemas.StudentDashboard)
 def student_dashboard(
     db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
@@ -31,12 +31,18 @@ def student_dashboard(
         for enrollment in current_student.enrollments:
             subject = enrollment.subject
             total_lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject.id).count()
-            
-            completed_lessons_query = db.query(models.Lesson.id).join(models.Quiz).join(models.QuizAttempt).filter(
-                models.Lesson.subject_id == subject.id,
-                models.QuizAttempt.student_id == current_student.user_id,
-                models.QuizAttempt.passed == True
-            ).distinct()
+
+            completed_lessons_query = (
+                db.query(models.Lesson.id)
+                .join(models.Quiz)
+                .join(models.QuizAttempt)
+                .filter(
+                    models.Lesson.subject_id == subject.id,
+                    models.QuizAttempt.student_id == current_student.user_id,
+                    models.QuizAttempt.passed,
+                )
+                .distinct()
+            )
             completed_lessons = completed_lessons_query.count()
 
             progress = (completed_lessons / total_lessons) * 100 if total_lessons > 0 else 0
@@ -66,7 +72,7 @@ def student_dashboard(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.get("/student/stats", response_model=schemas.DashboardStats)
+@router.get("/student/stats/", response_model=schemas.DashboardStats)
 def student_stats(
     db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
@@ -78,7 +84,7 @@ def student_stats(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.get("/admin", response_model=schemas.AdminDashboard)
+@router.get("/admin/", response_model=schemas.AdminDashboard)
 def admin_dashboard(db: Session = Depends(database.get_db)):
     try:
         recent_lessons = db.query(models.Lesson).order_by(models.Lesson.created_at.desc()).limit(5).all()

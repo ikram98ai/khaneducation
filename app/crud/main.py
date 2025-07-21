@@ -1,6 +1,5 @@
 from .. import models, schemas
 from .base import CRUDBase
-from ..database import Base
 from typing import List, Optional
 from sqlalchemy.orm import Session
 

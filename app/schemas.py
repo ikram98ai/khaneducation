@@ -37,6 +37,7 @@ class LessonCreate(LessonBase):
     instructor_id: Optional[int] = None
     status: LessonStatus
 
+
 class Lesson(LessonBase):
     id: int
     instructor_id: int
@@ -48,6 +49,7 @@ class Lesson(LessonBase):
 
     class Config:
         from_attributes = True
+
 
 class SubjectDetail(Subject):
     lessons: List[Lesson] = []
@@ -74,8 +76,6 @@ class Enrollment(EnrollmentBase):
 
     class Config:
         from_attributes = True
-
-
 
 
 class PracticeTaskBase(BaseModel):

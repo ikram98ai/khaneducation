@@ -66,10 +66,11 @@ def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)
         new_subject = crud.crud_subject.create(db, obj_in=subject)
 
         # Find matching students and enroll them
-        matching_students = db.query(models.Student).filter(
-            models.Student.current_grade == new_subject.grade_level,
-            models.Student.language == new_subject.language
-        ).all()
+        matching_students = (
+            db.query(models.Student)
+            .filter(models.Student.current_grade == new_subject.grade_level, models.Student.language == new_subject.language)
+            .all()
+        )
 
         for student in matching_students:
             enrollment = models.Enrollment(student_id=student.user_id, subject_id=new_subject.id)
@@ -79,10 +80,9 @@ def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)
             db.commit()
 
         return new_subject
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         # logger.error(f"Error creating subject: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
-
 
 
 @router.get("/subjects/", response_model=List[schemas.Subject])
@@ -117,7 +117,7 @@ async def create_lesson_for_subject(
     db_subject = crud.crud_subject.get(db, id=subject_id)
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
-    
+
     lesson.subject_id = subject_id
     lesson.instructor_id = current_admin.id
 
@@ -126,7 +126,7 @@ async def create_lesson_for_subject(
         return schemas.Lesson.from_orm(db_lesson)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         # logger.error(f"Error creating lesson for subject {subject_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
@@ -153,7 +153,7 @@ def read_lesson(lesson_id: int, db: Session = Depends(get_db)):
 
 @router.put("/lessons/{lesson_id}", response_model=schemas.Lesson)
 def update_lesson(lesson_id: int, lesson: schemas.LessonCreate, db: Session = Depends(get_db)):
-    print("DEBUG:: PUT lesson:: ",lesson)
+    print("DEBUG:: PUT lesson:: ", lesson)
     db_lesson = crud.crud_lesson.get(db, id=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
@@ -181,10 +181,11 @@ def verify_lesson(lesson_id: int, db: Session = Depends(get_db)):
         lesson.verified_at = datetime.utcnow()
         db.commit()
         return schemas.Lesson.from_orm(lesson)
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         db.rollback()
         # logger.error(f"Error verifying lesson {lesson_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+
 
 # Nested PracticeTask routes
 @router.post("/lessons/{lesson_id}/practice_tasks/", response_model=schemas.PracticeTask)

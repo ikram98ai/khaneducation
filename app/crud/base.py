@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 import logging
-from .. import models, schemas
+from .. import schemas
 from typing import Type, TypeVar, Generic, List, Optional
 from ..database import Base
 

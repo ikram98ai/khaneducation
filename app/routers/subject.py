@@ -34,17 +34,18 @@ def read_subject(subject_id: int, db: Session = Depends(database.get_db), curren
 
     lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject.id).all()
     total_lessons = len(lessons)
-    
+
     completed_lessons_count = 0
     lessons_with_progress = []
 
     for lesson in lessons:
-        lesson_quiz_attempts = db.query(models.QuizAttempt).join(models.Quiz).filter(
-            models.Quiz.lesson_id == lesson.id,
-            models.QuizAttempt.student_id == current_student.user_id,
-            models.QuizAttempt.passed == True
-        ).count()
-        
+        lesson_quiz_attempts = (
+            db.query(models.QuizAttempt)
+            .join(models.Quiz)
+            .filter(models.Quiz.lesson_id == lesson.id, models.QuizAttempt.student_id == current_student.user_id, models.QuizAttempt.passed)
+            .count()
+        )
+
         lesson_progress = 100.0 if lesson_quiz_attempts > 0 else 0.0
         if lesson_progress == 100.0:
             completed_lessons_count += 1
@@ -53,12 +54,13 @@ def read_subject(subject_id: int, db: Session = Depends(database.get_db), curren
         lesson_schema.progress = lesson_progress
         lessons_with_progress.append(lesson_schema)
 
-    return schemas.SubjectDetail(id=subject.id,
-                                 name=subject.name,
-                                 description= subject.description,
-                                 grade_level=subject.grade_level,
-                                 total_lessons=total_lessons,
-                                 completed_lessons = completed_lessons_count,
-                                 progress = (completed_lessons_count / total_lessons) * 100 if total_lessons > 0 else 0,
-                                 lessons=lessons_with_progress
-                                 )
+    return schemas.SubjectDetail(
+        id=subject.id,
+        name=subject.name,
+        description=subject.description,
+        grade_level=subject.grade_level,
+        total_lessons=total_lessons,
+        completed_lessons=completed_lessons_count,
+        progress=(completed_lessons_count / total_lessons) * 100 if total_lessons > 0 else 0,
+        lessons=lessons_with_progress,
+    )
