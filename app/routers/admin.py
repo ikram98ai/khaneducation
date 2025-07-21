@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List
-
-from .. import crud, schemas
+from datetime import datetime
+from .. import crud, schemas, models, services
 from ..database import get_db
 from ..dependencies import get_current_admin
 
@@ -61,7 +62,27 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 # Subject routes
 @router.post("/subjects/", response_model=schemas.Subject)
 def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)):
-    return crud.crud_subject.create(db=db, obj_in=subject)
+    try:
+        new_subject = crud.crud_subject.create(db, obj_in=subject)
+
+        # Find matching students and enroll them
+        matching_students = db.query(models.Student).filter(
+            models.Student.current_grade == new_subject.grade_level,
+            models.Student.language == new_subject.language
+        ).all()
+
+        for student in matching_students:
+            enrollment = models.Enrollment(student_id=student.user_id, subject_id=new_subject.id)
+            db.add(enrollment)
+
+        if matching_students:
+            db.commit()
+
+        return new_subject
+    except SQLAlchemyError as e:
+        # logger.error(f"Error creating subject: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+
 
 
 @router.get("/subjects/", response_model=List[schemas.Subject])
@@ -96,10 +117,18 @@ async def create_lesson_for_subject(
     db_subject = crud.crud_subject.get(db, id=subject_id)
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
+    
     lesson.subject_id = subject_id
     lesson.instructor_id = current_admin.id
-    db_lesson = crud.crud_lesson.create(db=db, obj_in=lesson)
-    return schemas.Lesson.from_orm(db_lesson)
+
+    try:
+        db_lesson = services.create_lesson_with_content(db, subject_id, current_admin.id, lesson.title)
+        return schemas.Lesson.from_orm(db_lesson)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except SQLAlchemyError as e:
+        # logger.error(f"Error creating lesson for subject {subject_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
 @router.get("/subjects/{subject_id}/lessons/", response_model=List[schemas.Lesson])
@@ -140,6 +169,22 @@ def delete_lesson(lesson_id: int, db: Session = Depends(get_db)):
     db_lesson = crud.crud_lesson.remove(db=db, id=lesson_id)
     return schemas.Lesson.from_orm(db_lesson)
 
+
+@router.put("/lessons/{lesson_id}/verify", response_model=schemas.Lesson)
+def verify_lesson(lesson_id: int, db: Session = Depends(get_db)):
+    try:
+        lesson = crud.crud_lesson.get(db, lesson_id)
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+
+        lesson.status = schemas.LessonStatus.VERIFIED
+        lesson.verified_at = datetime.utcnow()
+        db.commit()
+        return schemas.Lesson.from_orm(lesson)
+    except SQLAlchemyError as e:
+        db.rollback()
+        # logger.error(f"Error verifying lesson {lesson_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 # Nested PracticeTask routes
 @router.post("/lessons/{lesson_id}/practice_tasks/", response_model=schemas.PracticeTask)

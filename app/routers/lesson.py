@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime
 import logging
-from .. import schemas, crud, database, models, services
+from ..models import Lesson, User
+from .. import schemas, database, services
 from ..dependencies import get_current_user
 
 # Configure logging
@@ -13,22 +13,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/subjects/{subject_id}/lessons", tags=["lessons"])
 
-
-@router.post("/", response_model=schemas.Lesson)
-def create_lesson(
-    subject_id: int,
-    lesson: schemas.LessonCreate,
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        db_lesson = services.create_lesson_with_content(db, subject_id, current_user.id, lesson.title)
-        return schemas.Lesson.from_orm(db_lesson)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except SQLAlchemyError as e:
-        logger.error(f"Error creating lesson for subject {subject_id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
 @router.get("/", response_model=List[schemas.Lesson])
@@ -39,7 +23,7 @@ def read_lessons(
     db: Session = Depends(database.get_db),
 ):
     try:
-        lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject_id).offset(skip).limit(limit).all()
+        lessons = db.query(Lesson).filter(Lesson.subject_id == subject_id).offset(skip).limit(limit).all()
         if not lessons:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lessons found for this subject")
         return [schemas.Lesson.from_orm(lesson) for lesson in lessons]
@@ -48,18 +32,18 @@ def read_lessons(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.put("/{lesson_id}/verify", response_model=schemas.Lesson)
-def verify_lesson(lesson_id: int, db: Session = Depends(database.get_db)):
+@router.get("/{lesson_id}", response_model=List[schemas.Lesson])
+def read_lesson(
+    subject_id: int,
+    lesson_id: int,
+    db: Session = Depends(database.get_db),
+):
     try:
-        lesson = crud.crud_lesson.get(db, lesson_id)
+        lesson = db.query(Lesson).filter(Lesson.id == lesson_id, Lesson.subject_id == subject_id).first()
         if not lesson:
-            raise HTTPException(status_code=404, detail="Lesson not found")
-
-        lesson.status = models.LessonStatus.VERIFIED
-        lesson.verified_at = datetime.utcnow()
-        db.commit()
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lesson found for this subject")
         return schemas.Lesson.from_orm(lesson)
     except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Error verifying lesson {lesson_id}: {e}")
+        logger.error(f"Error fetching lesson {lesson_id} for subject {subject_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+
