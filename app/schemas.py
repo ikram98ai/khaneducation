@@ -2,7 +2,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 
-
 from .models import UserRole, LanguageChoices, LessonStatus, DifficultyLevel
 
 
@@ -27,6 +26,10 @@ class Subject(SubjectBase):
         from_attributes = True
 
 
+class SubjectDetail(Subject):
+    lessons: List["Lesson"] = []
+
+
 class LessonBase(BaseModel):
     title: str = Field(..., max_length=255)
     content: str
@@ -49,10 +52,6 @@ class Lesson(LessonBase):
 
     class Config:
         from_attributes = True
-
-
-class SubjectDetail(Subject):
-    lessons: List[Lesson] = []
 
 
 class EnrollmentBase(BaseModel):
@@ -95,6 +94,10 @@ class PracticeTask(PracticeTaskBase):
 
 class QuizQuestionBase(BaseModel):
     question_text: str
+    option_a: str
+    option_b: str
+    option_c: str
+    option_d: str
     correct_answer: str
 
 
@@ -137,6 +140,23 @@ class QuizAttempt(QuizAttemptBase):
         from_attributes = True
 
 
+class QuizSubmission(BaseModel):
+    quiz_id: int
+    responses: List[dict]
+
+
+class DashboardStats(BaseModel):
+    completedLessons: int
+    totalLessons: int
+    avgScore: float
+    streak: int
+
+
+class AIContentRequest(BaseModel):
+    message: str
+    context: Optional[str] = None
+
+
 class StudentResponseBase(BaseModel):
     question_id: int
     student_answer: str
@@ -150,11 +170,6 @@ class StudentResponse(StudentResponseBase):
         from_attributes = True
 
 
-class QuizSubmission(BaseModel):
-    quiz_id: int
-    responses: List[dict]
-
-
 class StudentDashboard(BaseModel):
     student: "Student"
     enrollments: List["EnrolledSubject"]
@@ -163,18 +178,6 @@ class StudentDashboard(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class DashboardStats(BaseModel):
-    completedLessons: int
-    totalLessons: int
-    avgScore: float
-    streak: int
-
-
-class AIContentRequest(BaseModel):
-    message: str
-    context: Optional[str] = None
 
 
 class StudentBase(BaseModel):

@@ -1,8 +1,8 @@
-"""auto_1752392034_Initial models migrations
+"""auto_1753208006_
 
-Revision ID: 30785e33becf
+Revision ID: 24a59c150a3f
 Revises:
-Create Date: 2025-07-13 12:33:55.586393
+Create Date: 2025-07-22 23:13:26.898718
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "30785e33becf"
+revision: str = "24a59c150a3f"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("grade_level", sa.Integer(), nullable=False),
-        sa.Column("language", sa.Enum("EN", "FR", "PS", "ES", "AR", "FA", "UR", name="languagechoices"), nullable=True),
+        sa.Column("language", sa.Enum("English", "French", "Pashto", "Spanish", "Arabic", "Persian", "Urdu", name="languagechoices"), nullable=True),
         sa.CheckConstraint("grade_level BETWEEN 1 AND 12", name="grade_level_range"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -153,7 +153,11 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("quiz_id", sa.Integer(), nullable=False),
         sa.Column("question_text", sa.Text(), nullable=False),
-        sa.Column("correct_answer", sa.Text(), nullable=False),
+        sa.Column("option_a", sa.String(), nullable=False),
+        sa.Column("option_b", sa.String(), nullable=False),
+        sa.Column("option_c", sa.String(), nullable=False),
+        sa.Column("option_d", sa.String(), nullable=False),
+        sa.Column("correct_answer", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(
             ["quiz_id"],
             ["quizzes.id"],

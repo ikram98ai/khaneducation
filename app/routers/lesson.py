@@ -22,7 +22,7 @@ def get_lesson(
         lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
         if not lesson:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lesson found for this subject")
-        return schemas.Lesson.from_orm(lesson)
+        return schemas.Lesson.model_validate(lesson)
     except SQLAlchemyError as e:
         logger.error(f"Error fetching lesson {lesson_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
@@ -37,7 +37,7 @@ def get_tasks(
         tasks = db.query(PracticeTask).filter(PracticeTask.lesson_id == lesson_id).all()
         # if not tasks:
         #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lesson found for this subject")
-        return [schemas.PracticeTask.from_orm(task) for task in tasks]
+        return [schemas.PracticeTask.model_validate(task) for task in tasks]
     except SQLAlchemyError as e:
         logger.error(f"Error fetching tasks for lesson {lesson_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
@@ -52,7 +52,7 @@ def get_quizzes(
         quizzes = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).all()
         # if not quizzes:
         #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lesson found for this subject")
-        return [schemas.Lesson.from_orm(quiz) for quiz in quizzes]
+        return [schemas.Quiz.model_validate(quiz) for quiz in quizzes]
     except SQLAlchemyError as e:
         logger.error(f"Error fetching quizzes for lesson {lesson_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")

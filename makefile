@@ -9,6 +9,9 @@ fix:
 format:
 	uv run ruff format
 
+test:
+	uv run pytest test_main.py
+
 migrate:
 	uv run alembic revision --autogenerate -m "auto_$(shell date +%s)_$(m)" && uv run alembic upgrade head
 
