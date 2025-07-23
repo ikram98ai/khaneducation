@@ -126,28 +126,43 @@ def generate_quiz(lesson_content, grade_level, language):
         "questions": [
             {
                 "question": "What is the main title covered in this lesson?",
-                "type": "SA",  # Multiple Choice
-                "correct_answer": "The main concepts explained in the lesson",
+                "option_a": "option_a",
+                "option_b": "option_b",
+                "option_c": "option_c",
+                "option_d": "option_d",
+                "correct_answer": "option b",
             },
             {
-                "question": "True or False: This lesson is appropriate for your grade level?",
-                "type": "TF",  # True/False
-                "correct_answer": "True",
+                "question": "This lesson is appropriate for your grade level?",
+                "option_a": "option_a",
+                "option_b": "option_b",
+                "option_c": "option_c",
+                "option_d": "option_d",                
+                "correct_answer": "option a",
             },
             {
                 "question": "Explain one key concept from this lesson in your own words.",
-                "type": "SA",  # Short Answer
-                "correct_answer": "Any reasonable explanation of a key concept",
+                "option_a": "option_a",
+                "option_b": "option_b",
+                "option_c": "option_c",
+                "option_d": "option_d",                
+                "correct_answer": "option d",
             },
             {
                 "question": "What grade level is this lesson designed for?",
-                "type": "SA",
-                "correct_answer": str(grade_level),
+                "option_a": "option_a",
+                "option_b": "option_b",
+                "option_c": "option_c",
+                "option_d": "option_d",                
+                "correct_answer": "option a",
             },
             {
                 "question": "Which language is this lesson presented in?",
-                "type": "SA",
-                "correct_answer": language,
+                "option_a": "option_a",
+                "option_b": "option_b",
+                "option_c": "option_c",
+                "option_d": "option_d",                
+                "correct_answer": "option a",
             },
         ]
     }

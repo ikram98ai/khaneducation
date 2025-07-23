@@ -8,4 +8,5 @@ from .main import (
     crud_quiz_attempt as crud_quiz_attempt,
     crud_student_response as crud_student_response,
     crud_user as crud_user,
+    crud_quiz_question as crud_quiz_question,
 )

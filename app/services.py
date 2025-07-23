@@ -17,10 +17,10 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
         language=subject.language.value,
     )
 
-    lesson_in = schemas.LessonCreate(subject_id=subject_id, title=title, content=lesson_content)
+    lesson_in = schemas.LessonCreate(subject_id=subject_id, instructor_id=instructor_id, title=title, content=lesson_content)
 
     db_lesson = crud.crud_lesson.create(db, obj_in=lesson_in)
-    db_lesson.instructor_id = instructor_id
+    # db_lesson.instructor_id = instructor_id
     db_lesson.status = models.LessonStatus.DRAFT
 
     # Create practice task
@@ -49,6 +49,10 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
             obj_in=schemas.QuizQuestionBase(
                 quiz_id=db_quiz.id,
                 question_text=question["question"],
+                option_a=question["option_a"],
+                option_b=question["option_b"],
+                option_c=question["option_c"],
+                option_d=question["option_d"],
                 correct_answer=question["correct_answer"],
             ),
         )

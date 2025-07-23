@@ -88,8 +88,8 @@ def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)
 @router.get("/subjects/", response_model=List[schemas.Subject])
 def read_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     subjects = crud.crud_subject.get_multi(db, skip=skip, limit=limit)
-    if not subjects:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No subjects found")
+    # if not subjects:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No subjects found")
     return subjects
 
 
@@ -110,7 +110,7 @@ def delete_subject(subject_id: int, db: Session = Depends(get_db)):
 
 
 # Nested Lesson routes
-@router.post("/subjects/{subject_id}/lessons/", response_model=schemas.Lesson)
+@router.post("/subjects/{subject_id}/lessons/", response_model=schemas.LessonCreate)
 async def create_lesson_for_subject(
     subject_id: int, lesson: schemas.LessonCreate, db: Session = Depends(get_db), current_admin: schemas.User = Depends(get_current_admin)
 ):

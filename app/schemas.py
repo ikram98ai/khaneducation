@@ -32,13 +32,13 @@ class SubjectDetail(Subject):
 
 class LessonBase(BaseModel):
     title: str = Field(..., max_length=255)
-    content: str
+    content:Optional[str] = None
 
 
 class LessonCreate(LessonBase):
     subject_id: Optional[int] = None
     instructor_id: Optional[int] = None
-    status: LessonStatus
+    status: Optional[LessonStatus] = None
 
 
 class Lesson(LessonBase):
@@ -93,6 +93,7 @@ class PracticeTask(PracticeTaskBase):
 
 
 class QuizQuestionBase(BaseModel):
+    quiz_id: int
     question_text: str
     option_a: str
     option_b: str
