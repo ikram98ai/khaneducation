@@ -21,6 +21,7 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
         lesson_in = schemas.LessonCreate(subject_id=subject_id, instructor_id=instructor_id, title=title, content=lesson_content)
 
         db_lesson = crud.crud_lesson.create(db, obj_in=lesson_in, commit=False)
+        db.flush()
         db_lesson.status = models.LessonStatus.DRAFT
 
         # Create practice task
@@ -43,6 +44,7 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
             language=subject.language.value,
         )
         db_quiz = crud.crud_quiz.create(db, obj_in=schemas.QuizBase(lesson_id=db_lesson.id, version=1), commit=False)
+        db.flush()
 
         for question in quiz_data["questions"]:
             crud.crud_quiz_question.create(
@@ -76,6 +78,7 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
         # Create quiz attempt
         attempt_in = schemas.QuizAttemptBase(quiz_id=quiz_id, student_id=student_id)
         db_attempt = crud.crud_quiz_attempt.create(db, obj_in=attempt_in, commit=False)
+        db.flush()
 
         correct_count = 0
         student_answers = []
@@ -138,6 +141,7 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
                 obj_in=schemas.QuizBase(lesson_id=lesson.id, version=new_version),
                 commit=False
             )
+            db.flush()
 
             for question in new_quiz_data["questions"]:
                 crud.crud_quiz_question.create(
