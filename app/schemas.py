@@ -154,7 +154,7 @@ class QuizSubmission(BaseModel):
 class QuizSubmissionResponse(BaseModel):
     attempt: QuizAttempt
     ai_feedback: str
-    regenerated_quiz: Quiz
+    regenerated_quiz: Optional[Quiz] = None
 
 class DashboardStats(BaseModel):
     completedLessons: int

@@ -33,13 +33,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             logger.error(f"Error fetching multiple {self.model.__name__}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-    def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
+    def create(self, db: Session, *, obj_in: CreateSchemaType, commit: bool = True) -> ModelType:
         try:
             obj_in_data = obj_in.dict()
             db_obj = self.model(**obj_in_data)
             db.add(db_obj)
-            db.commit()
-            db.refresh(db_obj)
+            if commit:
+                db.commit()
+                db.refresh(db_obj)
             return db_obj
         except SQLAlchemyError as e:
             db.rollback()
