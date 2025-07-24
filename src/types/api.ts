@@ -88,10 +88,12 @@ export interface Enrollment extends Subject {
 }
 
 export interface QuizAttempt {
-  id: string;
-  student: User;
-  quiz: Quiz;
+  id: number;
+  student_id: number;
+  quiz_id: number;
+  quiz_version:number
   start_time: string;
+  lesson_title: string;
   end_time: string;
   score: number;
   passed: boolean;
@@ -109,10 +111,8 @@ export interface QuizSubmission {
 }
 
 export interface StudentDashboard {
-  student: StudentProfile;
   enrollments: Enrollment[];
   recent_attempts: QuizAttempt[];
-  practice_tasks: PracticeTask[];
 }
 
 export interface AdminDashboard {

@@ -213,14 +213,13 @@ export const Dashboard = () => {
                     >
                       <div>
                         <p className="font-medium">
-                          {activity.quiz.lesson_title}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {activity.quiz.lesson}
+                          {activity.lesson_title}
+                        </p> 
+                         <p className="text-sm text-muted-foreground">
+                          Quiz Version: {activity.quiz_version}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(activity.start_time))}{" "}
-                          ago
+                          {formatDistanceToNow(new Date(activity.start_time))} ago
                         </p>
                       </div>
                       <Badge
