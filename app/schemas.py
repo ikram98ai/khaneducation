@@ -131,10 +131,12 @@ class QuizAttemptBase(BaseModel):
 
 class QuizAttempt(QuizAttemptBase):
     id: int
+    lesson_title: str
     start_time: datetime
     end_time: Optional[datetime] = None
     score: Optional[float] = None
     passed: bool
+    quiz_version:int
     cheating_detected: bool
 
     class Config:
@@ -181,10 +183,8 @@ class StudentResponse(StudentResponseBase):
 
 
 class StudentDashboard(BaseModel):
-    student: "Student"
     enrollments: List["EnrolledSubject"]
     recent_attempts: List["QuizAttempt"]
-    practice_tasks: List["PracticeTask"]
 
     class Config:
         from_attributes = True

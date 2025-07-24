@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 from .. import schemas, database, services, models
@@ -60,12 +60,19 @@ def student_dashboard(
                     progress=progress,
                 )
             )
+            
+        recent_attempts = (
+            db.query(models.QuizAttempt)
+            .options(joinedload(models.QuizAttempt.quiz).joinedload(models.Quiz.lesson))
+            .filter(models.QuizAttempt.student_id == current_student.user_id)
+            .order_by(models.QuizAttempt.start_time.desc())
+            .limit(5)
+            .all()
+        )
 
         return {
-            "student": current_student,
             "enrollments": enrollments_data,
-            "recent_attempts": current_student.quiz_attempts[:5],
-            "practice_tasks": get_student_practice_tasks(db, current_student.user_id),
+            "recent_attempts": recent_attempts,
         }
     except SQLAlchemyError as e:
         logger.error(f"Error fetching student dashboard for student {current_student.user_id}: {e}")

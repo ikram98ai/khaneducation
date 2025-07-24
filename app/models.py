@@ -13,6 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from sqlalchemy.sql.sqltypes import TIMESTAMP
+from sqlalchemy.ext.hybrid import hybrid_property
 from .database import Base
 import enum
 
@@ -176,6 +177,13 @@ class QuizAttempt(Base):
     quiz = relationship("Quiz", back_populates="attempts")
     responses = relationship("StudentResponse", back_populates="attempt")
 
+    @hybrid_property
+    def lesson_title(self):
+        return self.quiz.lesson.title if self.quiz and self.quiz.lesson else None
+
+    @hybrid_property
+    def quiz_version(self):
+        return self.quiz.version if self.quiz  else None
 
 class StudentResponse(Base):
     __tablename__ = "student_responses"
