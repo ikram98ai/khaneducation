@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 
-@router.post("/submit", response_model=dict)
+@router.post("/submit", response_model=schemas.QuizSubmissionResponse)
 def submit_quiz(
     submission: schemas.QuizSubmission,
     db: Session = Depends(database.get_db),

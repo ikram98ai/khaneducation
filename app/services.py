@@ -61,7 +61,7 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
     return db_lesson
 
 
-def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses: List[Dict[str, Any]]) -> schemas.QuizAttempt:
+def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses: List[schemas.QuizResponse]) -> schemas.QuizSubmissionResponse:
     quiz = crud.crud_quiz.get(db, quiz_id)
     if not quiz:
         raise ValueError("Quiz not found")
@@ -76,8 +76,8 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
 
     # Process responses
     for response in responses:
-        question_id = response["question_id"]
-        answer = response["answer"]
+        question_id = response.question_id
+        answer = response.answer
 
         question = crud.crud_quiz_question.get(db, question_id)
         if not question:
@@ -137,6 +137,10 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
                 obj_in=schemas.QuizQuestionBase(
                     quiz_id=new_quiz.id,
                     question_text=question["question"],
+                    option_a=question["option_a"],
+                    option_b=question["option_b"],
+                    option_c=question["option_c"],
+                    option_d=question["option_d"],
                     correct_answer=question["correct_answer"],
                 ),
             )

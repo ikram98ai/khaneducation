@@ -141,10 +141,18 @@ class QuizAttempt(QuizAttemptBase):
         from_attributes = True
 
 
+class QuizResponse(BaseModel):
+    question_id:int
+    answer: str
+
 class QuizSubmission(BaseModel):
     quiz_id: int
-    responses: List[dict]
+    responses: List[QuizResponse]
 
+class QuizSubmissionResponse(BaseModel):
+    attempt: QuizAttempt
+    ai_feedback: str
+    regenerated_quiz: Quiz
 
 class DashboardStats(BaseModel):
     completedLessons: int
@@ -159,6 +167,7 @@ class AIContentRequest(BaseModel):
 
 
 class StudentResponseBase(BaseModel):
+    attempt_id: int
     question_id: int
     student_answer: str
     is_correct: bool
