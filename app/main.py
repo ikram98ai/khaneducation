@@ -2,7 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
-
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from typing import List
+from .database import get_db
+from .ai import generate_content as ai
+from . import schemas
 from . import routers
 
 app = FastAPI(version="1.0.0")
@@ -22,7 +27,6 @@ app.include_router(routers.auth.router)
 app.include_router(routers.subject.router)
 app.include_router(routers.lesson.router)
 app.include_router(routers.quiz.router)
-app.include_router(routers.base.router)
 app.include_router(routers.dashboard.router)
 app.include_router(routers.admin.router)
 
@@ -30,6 +34,16 @@ app.include_router(routers.admin.router)
 @app.get("/")
 def root():
     return RedirectResponse("/docs")
+
+
+@app.get("/languages", response_model=List[schemas.LanguageChoices])
+def get_languages():
+    return list(schemas.LanguageChoices)
+
+
+@app.post("/ai/assist", response_model=dict)
+def assist_user(request: schemas.AIContentRequest, db: Session = Depends(get_db)):
+    return {"response": ai.ai_assistant(request.message, request.context)}
 
 
 handler = Mangum(app)
