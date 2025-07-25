@@ -12,6 +12,7 @@ import { SubjectDetail } from "./components/subjects/SubjectDetail";
 import { LessonDetail } from "./components/lessons/LessonDetail";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { useAuthStore } from "./stores/authStore";
+import { QuizPage } from "./components/quiz/QuizPage";
 
 const App = () => {
   const { profile } = useAuthStore();
@@ -29,6 +30,7 @@ const App = () => {
             <Route element={<ProtectedRoute />}>
               <Route path="/subjects/:subjectId"  element={<SubjectDetail />} />
               <Route path="/subjects/:subjectId/lessons/:lessonId" element={<LessonDetail />} />
+              <Route path="/lessons/:lessonId/quiz/" element={<QuizPage />} />
               <Route path="/dashboard" element={isAdmin? <AdminDashboard/> : <Dashboard />} />              
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -185,7 +185,7 @@ export const AdminDashboard = () => {
                 {dashboardData?.recent_attempts?.slice(0, 5).map((attempt) => (
                   <div key={attempt.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">Student ID: {attempt.student.id}</p>
+                      <p className="font-medium">Student ID: {attempt.student_id}</p>
                       <p className="text-sm text-muted-foreground">
                         Score: <span className={`font-medium ${attempt.passed ? 'text-green-600' : 'text-red-600'}`}>
                           {Math.round(attempt.score)}%

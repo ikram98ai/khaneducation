@@ -102,7 +102,7 @@ export async function getAiAssistance(
   return response.data;
 }
 
-
+// Content APIs
 export async function getSubjects(params?: {
   grade_level?: number;
   language?: string;
@@ -137,11 +137,20 @@ export async function getPracticeTasks(
   return response.data;
 }
 
-export async function getQuizzes(
+export async function getQuiz(
   lessonId: string
-): Promise<Quiz[]> {
+): Promise<Quiz | null> {
   const response = await api.get(
-    `/lessons/${lessonId}/quizzes/`
+    `/lessons/${lessonId}/quiz/`
+  );
+  return response.data;
+}
+
+export async function getQuizAttempts(
+  lessonId: string
+): Promise<QuizAttempt[] | []> {
+  const response = await api.get(
+    `/lessons/${lessonId}/attempts/`
   );
   return response.data;
 }
@@ -150,14 +159,6 @@ export async function getQuizzes(
 
 // Quiz APIs
 
-export async function getQuiz(
-  quizId: string
-): Promise<Quiz> {
-  const response = await api.get(
-    `/quizzes/${quizId}/`
-  );
-  return response.data;
-}
 
 export async function submitQuiz(submission: Partial<QuizSubmission>): Promise<{
   attempt: QuizAttempt;

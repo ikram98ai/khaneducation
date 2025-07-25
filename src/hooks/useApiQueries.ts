@@ -11,7 +11,6 @@ import {
   createStudentProfile,
   getStudentProfile,
   getLesson,
-  getQuizzes,
   getQuiz,
   submitQuiz,
   getPracticeTasks,
@@ -22,13 +21,14 @@ import {
   getAdminDashboard,
   adminAPI,
   getSubjectDetail,
+  getQuizAttempts,
 } from "@/services/api";
 import {
   User,
   QuizSubmission,
   AIAssistRequest,
   Subject,
-  Lesson
+  Lesson,
 } from "@/types/api";
 
 // Auth hooks
@@ -167,23 +167,22 @@ export const useLesson = (lessonId: string) => {
 };
 
 // Quiz hooks
-export const useQuizzes = (lessonId: string) => {
+export const useQuiz = (lessonId: string) => {
   return useQuery({
-    queryKey: ["quizzes",  lessonId],
-    queryFn: () => getQuizzes( lessonId),
+    queryKey: ["quiz", lessonId],
+    queryFn: () => getQuiz(lessonId),
     enabled: !!lessonId,
   });
 };
 
-export const useQuiz = (
-  quizId: string
-) => {
+export const useQuizAttempts = (lessonId: string) => {
   return useQuery({
-    queryKey: ["quiz", quizId],
-    queryFn: () => getQuiz( quizId),
-    enabled: !!quizId,
+    queryKey: ["quiz-attempts", lessonId],
+    queryFn: () => getQuizAttempts(lessonId),
+    enabled: !!lessonId,
   });
 };
+
 
 export const useSubmitQuiz = () => {
   const queryClient = useQueryClient();
@@ -219,12 +218,11 @@ export const useSubmitQuiz = () => {
 // Practice tasks
 export const usePracticeTasks = (lessonId: string) => {
   return useQuery({
-    queryKey: ["practice-tasks",  lessonId],
+    queryKey: ["practice-tasks", lessonId],
     queryFn: () => getPracticeTasks(lessonId),
     enabled: !!lessonId,
   });
 };
-
 
 // Dashboard hooks
 export const useStudentDashboard = () => {
@@ -278,7 +276,7 @@ export const useStudentDashboardStatistics = () => {
 // Admin hooks with comprehensive error handling
 export const useAdminUsers = (params?: { skip?: number; limit?: number }) => {
   const { profile } = useAuthStore();
-  const isAdmin = profile?.user?.role === 'admin';
+  const isAdmin = profile?.user?.role === "admin";
 
   return useQuery({
     queryKey: ["admin-users", params],
@@ -305,7 +303,9 @@ export const useCreateUser = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Create User",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -317,8 +317,13 @@ export const useUpdateUser = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ userId, userData }: { userId: string; userData: Partial<User> }) =>
-      adminAPI.updateUser(userId, userData),
+    mutationFn: ({
+      userId,
+      userData,
+    }: {
+      userId: string;
+      userData: Partial<User>;
+    }) => adminAPI.updateUser(userId, userData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({
@@ -329,7 +334,9 @@ export const useUpdateUser = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Update User",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -352,16 +359,21 @@ export const useDeleteUser = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Delete User",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
   });
 };
 
-export const useAdminSubjects = (params?: { skip?: number; limit?: number }) => {
+export const useAdminSubjects = (params?: {
+  skip?: number;
+  limit?: number;
+}) => {
   const { profile } = useAuthStore();
-  const isAdmin = profile?.user?.role === 'admin';
+  const isAdmin = profile?.user?.role === "admin";
 
   return useQuery({
     queryKey: ["admin-subjects", params],
@@ -377,8 +389,12 @@ export const useCreateAdminSubject = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (subjectData: Omit<Subject, "id" | "total_lessons" | "completed_lessons" | "progress">) =>
-      adminAPI.createAdminSubject(subjectData),
+    mutationFn: (
+      subjectData: Omit<
+        Subject,
+        "id" | "total_lessons" | "completed_lessons" | "progress"
+      >
+    ) => adminAPI.createAdminSubject(subjectData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-subjects"] });
       toast({
@@ -389,7 +405,9 @@ export const useCreateAdminSubject = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Create Subject",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -401,8 +419,13 @@ export const useUpdateAdminSubject = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ subjectId, subjectData }: { subjectId: string; subjectData: Partial<Subject> }) =>
-      adminAPI.updateAdminSubject(subjectId, subjectData),
+    mutationFn: ({
+      subjectId,
+      subjectData,
+    }: {
+      subjectId: string;
+      subjectData: Partial<Subject>;
+    }) => adminAPI.updateAdminSubject(subjectId, subjectData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-subjects"] });
       toast({
@@ -413,7 +436,9 @@ export const useUpdateAdminSubject = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Update Subject",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -436,7 +461,9 @@ export const useDeleteAdminSubject = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Delete Subject",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -445,7 +472,7 @@ export const useDeleteAdminSubject = () => {
 
 export const useAdminDashboard = () => {
   const { profile } = useAuthStore();
-  const isAdmin = profile?.user?.role === 'admin';
+  const isAdmin = profile?.user?.role === "admin";
 
   return useQuery({
     queryKey: ["admin-dashboard"],
@@ -456,9 +483,12 @@ export const useAdminDashboard = () => {
   });
 };
 
-export const useAdminLessons = (subjectId: string, params?: { skip?: number; limit?: number }) => {
+export const useAdminLessons = (
+  subjectId: string,
+  params?: { skip?: number; limit?: number }
+) => {
   const { profile } = useAuthStore();
-  const isAdmin = profile?.user?.role === 'admin';
+  const isAdmin = profile?.user?.role === "admin";
 
   return useQuery({
     queryKey: ["admin-lessons", subjectId, params],
@@ -474,8 +504,13 @@ export const useCreateAdminLesson = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ subjectId, lessonData }: { subjectId: string; lessonData: Partial<Lesson> }) =>
-      adminAPI.createAdminLesson(subjectId, lessonData),
+    mutationFn: ({
+      subjectId,
+      lessonData,
+    }: {
+      subjectId: string;
+      lessonData: Partial<Lesson>;
+    }) => adminAPI.createAdminLesson(subjectId, lessonData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
       toast({
@@ -486,7 +521,9 @@ export const useCreateAdminLesson = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Create Lesson",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -498,8 +535,13 @@ export const useUpdateAdminLesson = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ lessonId, lessonData }: { lessonId: string; lessonData: Partial<Lesson> }) =>
-      adminAPI.updateAdminLesson(lessonId, lessonData),
+    mutationFn: ({
+      lessonId,
+      lessonData,
+    }: {
+      lessonId: string;
+      lessonData: Partial<Lesson>;
+    }) => adminAPI.updateAdminLesson(lessonId, lessonData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
       toast({
@@ -510,7 +552,9 @@ export const useUpdateAdminLesson = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Update Lesson",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },
@@ -533,7 +577,9 @@ export const useDeleteAdminLesson = () => {
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Delete Lesson",
-        description: (error.response?.data as { detail: string })?.detail || "An error occurred",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
         variant: "destructive",
       });
     },

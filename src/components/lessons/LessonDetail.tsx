@@ -8,21 +8,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import {
-  useQuizzes,
+  useQuizAttempts,
   usePracticeTasks,
-  useSubmitQuiz,
   useSubject,
   useLesson,
 } from "@/hooks/useApiQueries";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { AIAssistant } from "../learning/AIAssistant";
 
 export const LessonDetail = () => {
+  const navigate = useNavigate()
   const { subjectId, lessonId } = useParams();
 
   const {
@@ -37,59 +36,26 @@ export const LessonDetail = () => {
   } = useLesson(lessonId);
 
   const [activeTab, setActiveTab] = useState("content");
-  const [quizStarted, setQuizStarted] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-
 
   const onBack = () => {
     window.history.back();
   };
 
+  const startQuiz = () => {
+    navigate(`/lessons/${lessonId}/quiz/`, { replace: true })
+  };
+
   const {
-    data: quizzes = [],
-    isLoading: isQuizzesLoading,
-    isError: isQuizzesError,
-  } = useQuizzes(lesson?.id);
+    data: quizAttempts,
+    isLoading: isAttemptsLoading,
+    isError: isAttemptsError,
+  } = useQuizAttempts(lesson?.id);
   const {
     data: practiceTasks = [],
     isLoading: isTasksLoading,
     isError: isTasksError,
   } = usePracticeTasks(lesson?.id);
-  const submitQuizMutation = useSubmitQuiz();
 
-  const quiz = quizzes[0];
-
-  const handleQuizAnswer = (questionId: string, answer: string) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questionId]: answer,
-    }));
-  };
-
-  const nextQuestion = () => {
-    if (currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion((prev) => prev + 1);
-    } else {
-      const responses = Object.entries(selectedAnswers).map(
-        ([question_id, answer]) => ({
-          question_id,
-          answer,
-        })
-      );
-
-      submitQuizMutation.mutate(
-        { quiz_id: quiz.id, responses },
-        {
-          onSuccess: () => {
-            setQuizStarted(false);
-            setCurrentQuestion(0);
-            setSelectedAnswers({});
-          },
-        }
-      );
-    }
-  };
 
   if (isSubjectLoading || isLessonLoading) {
     return (
@@ -206,124 +172,74 @@ export const LessonDetail = () => {
           </TabsContent>
 
           <TabsContent value="quiz" className="mt-6">
-            {isQuizzesLoading ? (
-              <p>Loading quiz...</p>
-            ) : isQuizzesError ? (
-              <p>Error loading quiz.</p>
-            ) : !quiz ? (
-              <p>No quiz available for this lesson.</p>
-            ) : !quizStarted ? (
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle>Knowledge Check Quiz</CardTitle>
-                  <CardDescription>
-                    Test your understanding with {quiz.questions.length}{" "}
-                    questions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-2xl">🧠</div>
-                      <div>
-                        <p className="font-medium">
-                          Ready to test your knowledge?
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          You need 70% or higher to pass
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="gradient"
-                      onClick={() => setQuizStarted(true)}
-                      size="lg"
-                    >
-                      Start Quiz
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>
-                      Question {currentQuestion + 1} of{" "}
-                      {quiz.questions.length}
-                    </CardTitle>
-                    <Progress
-                      value={
-                        ((currentQuestion + 1) / quiz.questions.length) * 100
-                      }
-                      className="w-32"
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-medium">
-                      {quiz.questions[currentQuestion].question_text}
-                    </h3>
+            <Card className="shadow-soft">
+              <CardHeader>
+                <CardTitle>Knowledge Check Quiz</CardTitle>
+                <CardDescription>
+                  Test your understanding of the lesson content.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="gradient"
+                  onClick={startQuiz}
+                  size="lg"
+                  className="w-full"
+                >
+                  Start New Quiz
+                </Button>
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-3">
-                      {[
-                        quiz.questions[currentQuestion].option_a,
-                        quiz.questions[currentQuestion].option_b,
-                        quiz.questions[currentQuestion].option_c,
-                        quiz.questions[currentQuestion].option_d,
-                      ].map((option, index) => (
-                        <label
-                          key={index}
-                          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                            selectedAnswers[
-                              quiz.questions[currentQuestion].id
-                            ] === option
-                              ? "border-primary bg-primary/10"
-                              : "border-border hover:bg-muted/50"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`question-${currentQuestion}`}
-                            value={option}
-                            checked={
-                              selectedAnswers[
-                                quiz.questions[currentQuestion].id
-                              ] === option
-                            }
-                            onChange={() =>
-                              handleQuizAnswer(
-                                quiz.questions[currentQuestion].id,
-                                option
-                              )
-                            }
-                            className="mr-3"
-                          />
-                          <span>{option}</span>
-                        </label>
-                      ))}
-                    </div>
+            <div className="mt-8">
+              <h3 className="text-lg font-bold mb-4">Your Quiz History</h3>
+              {isAttemptsLoading ? (
+                <p>Loading history...</p>
+              ) : isAttemptsError ? (
+                <p>Could not load history.</p>
+              ) : quizAttempts && quizAttempts.length > 0 ? (
+                <div className="space-y-4">
+                  {quizAttempts.map((attempt) => (
+                    <Card key={attempt.id} className="shadow-soft">
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">
+                            Quiz Attempt on{" "}
+                            {new Date(attempt.start_time).toLocaleString()}
+                          </p>
 
-                    <Button
-                      onClick={nextQuestion}
-                      disabled={
-                        !selectedAnswers[quiz.questions[currentQuestion].id]
-                      }
-                      className="w-full"
-                    >
-                      {currentQuestion === quiz.questions.length - 1
-                        ? "Finish Quiz"
-                        : "Next Question"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                          <p
+                            className="text-sm"
+                          >
+                            Quiz Version • {attempt.quiz_version}
+
+                          </p> 
+                          <p
+                            className={`text-sm ${
+                              attempt.passed
+                                ? "text-green-500"
+                                : "text-red-500"
+                            }`}
+                          >
+                            {attempt.passed ? "Passed" : "Failed"} • Score:{" "}
+                            {attempt.score}%
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Review
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p>You haven't attempted any quizzes for this lesson yet.</p>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
-    <AIAssistant subject={subject.name} lesson={lesson.title} />
+      <AIAssistant subject={subject.name} lesson={lesson.title} />
     </div>
-  );
-};
+  )
+}

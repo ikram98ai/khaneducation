@@ -89,11 +89,11 @@ export interface Enrollment extends Subject {
 
 export interface QuizAttempt {
   id: number;
-  student_id: number;
+  student_id?: number;
   quiz_id: number;
   quiz_version:number
   start_time: string;
-  lesson_title: string;
+  lesson_title?: string;
   end_time: string;
   score: number;
   passed: boolean;
