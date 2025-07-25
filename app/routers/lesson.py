@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import desc
 from typing import List, Optional
 import logging
 from ..models import Lesson, PracticeTask, Quiz, QuizAttempt, Student
@@ -66,7 +67,7 @@ def get_quiz(
             return None
 
         # If no successful attempt, load the quiz
-        quiz = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).last()
+        quiz = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).order_by(desc(Quiz.version)).first()
         if not quiz:
             return None
         
@@ -93,11 +94,12 @@ def get_quiz_attempts(
             db.query(QuizAttempt)
             .join(Quiz)
             .filter(Quiz.lesson_id == lesson_id, QuizAttempt.student_id == student.user_id)
+            .order_by(desc(Quiz.version))
             .offset(skip)
             .limit(limit)
             .all()
         )
-        return [schemas.QuizAttempt.from_orm(attempt) for attempt in attempts]
+        return [schemas.QuizAttempt.model_validate(attempt) for attempt in attempts]
     except SQLAlchemyError as e:
         logger.error(f"Error fetching quiz attempts for lesson {lesson_id}: {e}")
         raise HTTPException(
