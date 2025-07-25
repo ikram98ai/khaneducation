@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List
+from typing import List, Optional
 import logging
-from ..models import Lesson, PracticeTask, Quiz
+from ..models import Lesson, PracticeTask, Quiz, QuizAttempt, Student
 from .. import schemas, database
-
+from ..dependencies import get_current_student
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,16 +43,65 @@ def get_tasks(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.get("/{lesson_id}/quizzes/", response_model=List[schemas.Quiz])
-def get_quizzes(
+@router.get("/{lesson_id}/quiz/", response_model=Optional[schemas.Quiz])
+def get_quiz(
     lesson_id: int,
     db: Session = Depends(database.get_db),
+    student: Student = Depends(get_current_student),
 ):
     try:
-        quizzes = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).all()
-        # if not quizzes:
-        #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No lesson found for this subject")
-        return [schemas.Quiz.model_validate(quiz) for quiz in quizzes]
+        # Check for successful quiz attempts for this lesson by the student
+        successful_attempt = (
+            db.query(QuizAttempt)
+            .join(Quiz)
+            .filter(
+                Quiz.lesson_id == lesson_id,
+                QuizAttempt.student_id == student.user_id,
+                QuizAttempt.passed == True,
+            )
+            .first()
+        )
+
+        if successful_attempt:
+            return None
+
+        # If no successful attempt, load the quiz
+        quiz = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).last()
+        if not quiz:
+            return None
+        
+        return schemas.Quiz.model_validate(quiz)
     except SQLAlchemyError as e:
-        logger.error(f"Error fetching quizzes for lesson {lesson_id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+        logger.error(f"Error fetching quiz for lesson {lesson_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error",
+        )
+
+
+
+@router.get("/{lesson_id}/attempts/", response_model=List[schemas.QuizAttempt])
+def get_quiz_attempts(
+    lesson_id: int,
+    db: Session = Depends(database.get_db),
+    student: Student = Depends(get_current_student),
+    skip: int = 0,
+    limit: int = 100,
+):
+    try:
+        attempts = (
+            db.query(QuizAttempt)
+            .join(Quiz)
+            .filter(Quiz.lesson_id == lesson_id, QuizAttempt.student_id == student.user_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return [schemas.QuizAttempt.from_orm(attempt) for attempt in attempts]
+    except SQLAlchemyError as e:
+        logger.error(f"Error fetching quiz attempts for lesson {lesson_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error",
+        )
+
