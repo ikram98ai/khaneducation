@@ -102,7 +102,7 @@ export const AIAssistant = ({subject, lesson}:{subject:string, lesson?:string}) 
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[500px] z-50 shadow-floating animate-spring-in border-glass bg-glass backdrop-blur-glass">
+    <Card className="fixed bottom-6 right-6 w-96 h-[500px] z-50 shadow-floating animate-spring-in  bg-white/80 backdrop-blur-xl border-b border-gray-200">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

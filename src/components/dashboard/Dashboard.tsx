@@ -50,11 +50,11 @@ export const Dashboard = () => {
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Smart Search */}
-        <div className="mb-8 flex justify-center">
+        {/* <div className="mb-8 flex justify-center">
           <SmartSearch
             onSelectResult={(result) => console.log("Selected:", result)}
           />
-        </div>
+        </div> */}
         {/* Stats Overview with staggered animations */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card

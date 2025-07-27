@@ -26,17 +26,17 @@ export default function Header() {
                 <>
                 <button
                   onClick={useAuthStore.getState().clearAuth}
-                  className="text-gray-600 hover:text-red-600 font-medium ml-2"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-xl transition-colors"
                 >
                   Logout
                 </button>
 
-                <Link 
+                {/* <Link 
                   to='/dashboard'
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-xl transition-colors"
                 >
                   Go to Dashboard
-                </Link>
+                </Link> */}
                 </>
             ) : (
               <>

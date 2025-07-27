@@ -85,7 +85,7 @@ export default function Index() {
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link
-                to="/register"
+                to="/login"
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Get Started Free
@@ -346,17 +346,17 @@ export default function Index() {
 
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
-                to="/register"
+                to="/login"
                 className="bg-white text-indigo-600 font-semibold py-3 px-8 rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
               >
                 Get Started Free
               </Link>
-              <Link
+              {/* <Link
                 to="/login"
                 className="bg-transparent border-2 border-white text-white font-semibold py-3 px-8 rounded-xl hover:bg-white/10 transition-colors"
               >
                 Sign In
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
