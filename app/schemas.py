@@ -164,8 +164,9 @@ class DashboardStats(BaseModel):
 
 
 class AIContentRequest(BaseModel):
-    message: str
-    context: Optional[str] = None
+    query_text: str
+    subject_id: int
+    lesson_id: Optional[int] = None
 
 
 class StudentResponseBase(BaseModel):

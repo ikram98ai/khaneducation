@@ -9,6 +9,7 @@ from .database import get_db
 from .ai import generate_content as ai
 from . import schemas
 from . import routers
+from . import models
 
 app = FastAPI(version="1.0.0")
 
@@ -43,7 +44,20 @@ def get_languages():
 
 @app.post("/ai/assist", response_model=dict)
 def assist_user(request: schemas.AIContentRequest, db: Session = Depends(get_db)):
-    return {"response": ai.ai_assistant(request.message, request.context)}
+    # load subject name and lesson name from the database if needed
+    # For now, we assume that the subject_id and lesson_id are sufficient for context
+    # If you need to fetch additional context, you can do so here
+    # For example:
+    subject = db.query(models.Subject).filter(models.Subject.id == request.subject_id).first()
+    lesson_content = ''
+    if request.lesson_id:
+        lesson = db.query(models.Lesson).filter(models.Lesson.id == request.lesson_id).first()
+        lesson_content = f"{lesson.title}"if lesson else ''
+        lesson_content +=f"\n\{lesson.content}" if lesson else ''
+
+    context = f"Subject: {subject.name}, Lesson: {lesson_content}"
+
+    return {"ai_response": ai.ai_assistant(request.query_text, context)}
 
 
 handler = Mangum(app)

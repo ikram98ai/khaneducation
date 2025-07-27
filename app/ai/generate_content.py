@@ -4,7 +4,7 @@ These are placeholder functions that you should implement with your actual AI se
 """
 
 
-def ai_assistant(message, context):
+def ai_assistant(query_text, context):
     """
     Placeholder function to simulate AI assistant response.
 
@@ -16,7 +16,7 @@ def ai_assistant(message, context):
         str: Simulated AI response.
     """
     # This should be replaced with actual AI service call
-    return f"AI Response to '{message}' with context '{context}'"
+    return f"AI Response to '{query_text}' with context '{context}'"
 
 
 def generate_lesson(title, grade_level, language):
