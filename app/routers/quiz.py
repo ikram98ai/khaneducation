@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from .. import schemas, database, models, services
+from typing import List
 import logging
 from ..dependencies import get_current_student
+from .. import schemas, database, models, services
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 @router.post("{quiz_id}/submit", response_model=schemas.QuizSubmissionResponse)
 def submit_quiz(
     quiz_id: int,
-    submission: schemas.QuizSubmission,
+    responses: List[schemas.QuizResponse],
     db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
 ):
@@ -24,7 +25,7 @@ def submit_quiz(
             db,
             quiz_id,
             current_student.user_id,
-            submission.responses,
+            responses,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

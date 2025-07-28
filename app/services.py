@@ -118,7 +118,7 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
 
         # Update attempt
         db_attempt.score = score
-        db_attempt.passed = score >= 80
+        db_attempt.passed = score >= 70
         db_attempt.end_time = datetime.utcnow()
 
         # Generate AI feedback

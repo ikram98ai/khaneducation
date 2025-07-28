@@ -99,7 +99,6 @@ class QuizQuestionBase(BaseModel):
     option_b: str
     option_c: str
     option_d: str
-    correct_answer: str
 
 
 class QuizQuestion(QuizQuestionBase):
@@ -146,9 +145,6 @@ class QuizAttempt(QuizAttemptBase):
 class QuizResponse(BaseModel):
     question_id:int
     answer: str
-
-class QuizSubmission(BaseModel):
-    responses: List[QuizResponse]
 
 class QuizSubmissionResponse(BaseModel):
     attempt: QuizAttempt
