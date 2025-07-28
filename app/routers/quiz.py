@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 
-@router.post("/submit", response_model=schemas.QuizSubmissionResponse)
+@router.post("{quiz_id}/submit", response_model=schemas.QuizSubmissionResponse)
 def submit_quiz(
+    quiz_id: int,
     submission: schemas.QuizSubmission,
     db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
@@ -21,7 +22,7 @@ def submit_quiz(
     try:
         return services.submit_quiz_responses(
             db,
-            submission.quiz_id,
+            quiz_id,
             current_student.user_id,
             submission.responses,
         )

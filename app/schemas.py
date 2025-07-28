@@ -118,8 +118,8 @@ class Quiz(QuizBase):
     id: int
     ai_generated: bool
     created_at: datetime
+    lesson_title: Optional[str] = None
     questions: List[QuizQuestion] = []
-
     class Config:
         from_attributes = True
 
@@ -148,7 +148,6 @@ class QuizResponse(BaseModel):
     answer: str
 
 class QuizSubmission(BaseModel):
-    quiz_id: int
     responses: List[QuizResponse]
 
 class QuizSubmissionResponse(BaseModel):

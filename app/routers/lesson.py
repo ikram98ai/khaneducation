@@ -71,7 +71,10 @@ def get_quiz(
         if not quiz:
             return None
         
-        return schemas.Quiz.model_validate(quiz)
+        lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+        quiz_data = schemas.Quiz.model_validate(quiz).model_dump()
+        quiz_data["lesson_title"] = lesson.title if lesson else None
+        return schemas.Quiz.model_validate(quiz_data)
     except SQLAlchemyError as e:
         logger.error(f"Error fetching quiz for lesson {lesson_id}: {e}")
         raise HTTPException(
