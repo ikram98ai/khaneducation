@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "api_domain_name" {
   description = "API domain name (e.g., api.yourdomain.ai)"
   type        = string
-    default     = "api.khaneducation.ai"
+  default     = "api.khaneducation.ai"
 
 }
 
@@ -57,7 +57,6 @@ variable "secret_key" {
   description = "secret key for the application"
   type        = string
   sensitive = true   
-  default = "CiwKqIcVWcvYG/L761519jmVzFHiv6Et2qXSZxZLuL0="
 } 
 
 variable "gemini_api_key" {
@@ -66,3 +65,42 @@ variable "gemini_api_key" {
   sensitive   = true
 }
 
+
+# VPC Configuration
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+# Database Configuration
+variable "db_name" {
+  description = "Database name"
+  type        = string
+  default     = "khaneducation"
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  default     = "postgres"
+}
+
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+# Aurora Serverless v2 Scaling Configuration
+variable "aurora_min_capacity" {
+  description = "Minimum Aurora Serverless v2 capacity"
+  type        = number
+  default     = 0
+}
+
+variable "aurora_max_capacity" {
+  description = "Maximum Aurora Serverless v2 capacity"
+  type        = number
+  default     = 2
+}
