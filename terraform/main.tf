@@ -192,10 +192,32 @@ resource "aws_rds_cluster_parameter_group" "aurora" {
   tags = var.tags
 }
 
+resource "aws_iam_role" "rds_enhanced_monitoring" {
+  name               = "${var.function_name}-rds-monitoring-role"
+  assume_role_policy = data.aws_iam_policy_document.rds_enhanced_monitoring.json
+}
+
+data "aws_iam_policy_document" "rds_enhanced_monitoring" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["monitoring.rds.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
+  role       = aws_iam_role.rds_enhanced_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+
 resource "aws_rds_cluster" "aurora" {
   cluster_identifier              = "${var.function_name}-aurora-cluster"
   engine                          = "aurora-postgresql"
-  engine_mode                     = "provisioned"
+  engine_mode                     = "serverless"
   engine_version                  = "17.5"
   database_name                   = var.db_name
   master_username                 = var.db_username
@@ -231,6 +253,7 @@ resource "aws_rds_cluster_instance" "aurora" {
   engine_version     = aws_rds_cluster.aurora.engine_version
 
   performance_insights_enabled = true
+  monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn # Add this line
   monitoring_interval          = 60
 
   tags = merge(var.tags, {
