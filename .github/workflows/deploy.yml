@@ -38,3 +38,47 @@ jobs:
           TF_VAR_secret_key: ${{ secrets.SECRET_KEY }}
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
         run: terraform apply -auto-approve -lock=false
+
+  migrate:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.0.0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies
+        run: |
+          pip install alembic psycopg2-binary sqlalchemy
+
+      - name: Get Terraform Outputs
+        working-directory: terraform
+        id: terraform-outputs
+        run: |
+          terraform init
+          echo "DB_ENDPOINT=$(terraform output -raw aurora_cluster_endpoint)" >> $GITHUB_ENV
+          echo "DB_PORT=$(terraform output -raw aurora_cluster_port)" >> $GITHUB_ENV
+          echo "DB_NAME=$(terraform output -raw aurora_cluster_database_name)" >> $GITHUB_ENV
+          echo "DB_USERNAME=$(terraform output -raw aurora_cluster_master_username)" >> $GITHUB_ENV
+
+      - name: Run Database Migrations
+        working-directory: ./
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          export DATABASE_URL="postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_ENDPOINT}:${DB_PORT}/${DB_NAME}"
+          alembic upgrade head

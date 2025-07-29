@@ -23,3 +23,14 @@ output "lambda_function_arn" {
   description = "Lambda function ARN"
   value       = aws_lambda_function.khaneducation_lambda.arn
 }
+
+
+output "aurora_cluster_database_name" {
+  value = var.db_name
+  description = "Aurora cluster database name"
+}
+
+output "aurora_cluster_master_username" {
+  value = var.db_username
+  description = "Aurora cluster master username"
+}

@@ -36,6 +36,17 @@ tf_backend:
 		--key-schema AttributeName=LockID,KeyType=HASH \
 		--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 
+build:
+	@echo "Building Docker image..."
+	docker build -t khaneducation-lambda .
+
+	@echo "Running Docker container..."
+	docker run -p 8080:8080 \
+		-e GEMINI_API_KEY=${GEMINI_API_KEY} \
+		-e SECRET_KEY=${SECRET_KEY} \
+		-e DEBUG=True \
+		khaneducation-lambda
+
 # deploy:
 # 	@echo "Deploying to AWS Lambda..."
 # 	terraform -chdir=terraform init
