@@ -30,6 +30,7 @@ resource "aws_rds_cluster" "aurora" {
   database_name      = var.db_name
   master_username    = var.db_username
   master_password    = var.db_password
+  skip_final_snapshot = true
   storage_encrypted  = true
 
   serverlessv2_scaling_configuration {
