@@ -60,7 +60,7 @@ def student_dashboard(
                     progress=progress,
                 )
             )
-            
+
         recent_attempts = (
             db.query(models.QuizAttempt)
             .options(joinedload(models.QuizAttempt.quiz).joinedload(models.Quiz.lesson))

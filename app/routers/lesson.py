@@ -7,6 +7,7 @@ import logging
 from ..models import Lesson, PracticeTask, Quiz, QuizAttempt, Student
 from .. import schemas, database
 from ..dependencies import get_current_student
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ def get_quiz(
             .filter(
                 Quiz.lesson_id == lesson_id,
                 QuizAttempt.student_id == student.user_id,
-                QuizAttempt.passed == True,
+                QuizAttempt.passed,
             )
             .first()
         )
@@ -70,7 +71,7 @@ def get_quiz(
         quiz = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).order_by(desc(Quiz.version)).first()
         if not quiz:
             return None
-        
+
         lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
         quiz_data = schemas.Quiz.model_validate(quiz).model_dump()
         quiz_data["lesson_title"] = lesson.title if lesson else None
@@ -81,7 +82,6 @@ def get_quiz(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error",
         )
-
 
 
 @router.get("/{lesson_id}/attempts/", response_model=List[schemas.QuizAttempt])
@@ -109,4 +109,3 @@ def get_quiz_attempts(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error",
         )
-

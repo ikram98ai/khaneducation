@@ -3,7 +3,7 @@ from sqlalchemy.sql import func
 from . import models, schemas, crud
 from .ai import generate_content as ai
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import List
 
 
 def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int, title: str) -> models.Lesson:
@@ -32,9 +32,7 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
             language=subject.language.value,
         )
         crud.crud_practice_task.create(
-            db,
-            obj_in=schemas.PracticeTaskBase(lesson_id=db_lesson.id, content=task_content, difficulty="ME"),
-            commit=False
+            db, obj_in=schemas.PracticeTaskBase(lesson_id=db_lesson.id, content=task_content, difficulty="ME"), commit=False
         )
 
         # Create quiz
@@ -58,7 +56,7 @@ def create_lesson_with_content(db: Session, subject_id: int, instructor_id: int,
                     option_d=question["option_d"],
                     correct_answer=question["correct_answer"],
                 ),
-                commit=False
+                commit=False,
             )
 
         db.commit()
@@ -109,7 +107,7 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
                     student_answer=answer,
                     is_correct=is_correct,
                 ),
-                commit=False
+                commit=False,
             )
 
         # Calculate score
@@ -136,11 +134,7 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
                 language=lesson.subject.language.value,
             )
 
-            new_quiz = crud.crud_quiz.create(
-                db,
-                obj_in=schemas.QuizBase(lesson_id=lesson.id, version=new_version),
-                commit=False
-            )
+            new_quiz = crud.crud_quiz.create(db, obj_in=schemas.QuizBase(lesson_id=lesson.id, version=new_version), commit=False)
             db.flush()
 
             for question in new_quiz_data["questions"]:
@@ -155,7 +149,7 @@ def submit_quiz_responses(db: Session, quiz_id: int, student_id: int, responses:
                         option_d=question["option_d"],
                         correct_answer=question["correct_answer"],
                     ),
-                    commit=False
+                    commit=False,
                 )
             regenerated_quiz = new_quiz
 

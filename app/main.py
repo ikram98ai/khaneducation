@@ -49,11 +49,11 @@ def assist_user(request: schemas.AIContentRequest, db: Session = Depends(get_db)
     # If you need to fetch additional context, you can do so here
     # For example:
     subject = db.query(models.Subject).filter(models.Subject.id == request.subject_id).first()
-    lesson_content = ''
+    lesson_content = ""
     if request.lesson_id:
         lesson = db.query(models.Lesson).filter(models.Lesson.id == request.lesson_id).first()
-        lesson_content = f"{lesson.title}"if lesson else ''
-        lesson_content +=f"\n\{lesson.content}" if lesson else ''
+        lesson_content = f"{lesson.title}" if lesson else ""
+        lesson_content += f"\n\{lesson.content}" if lesson else ""
 
     context = f"Subject: {subject.name}, Lesson: {lesson_content}"
 

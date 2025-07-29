@@ -49,7 +49,6 @@ def read_subject(subject_id: int, db: Session = Depends(database.get_db), curren
         if lesson_progress == 100.0:
             completed_lessons_count += 1
 
-
     return schemas.SubjectDetail(
         id=subject.id,
         name=subject.name,
@@ -60,8 +59,9 @@ def read_subject(subject_id: int, db: Session = Depends(database.get_db), curren
         progress=(completed_lessons_count / total_lessons) * 100 if total_lessons > 0 else 0,
     )
 
+
 @router.get("/{subject_id}/details", response_model=schemas.SubjectDetail)
-def read_subject(subject_id: int, db: Session = Depends(database.get_db), current_student: models.Student = Depends(get_current_student)):
+def read_subject_details(subject_id: int, db: Session = Depends(database.get_db), current_student: models.Student = Depends(get_current_student)):
     subject = crud_subject.get(db, subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")

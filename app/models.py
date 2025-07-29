@@ -183,7 +183,8 @@ class QuizAttempt(Base):
 
     @hybrid_property
     def quiz_version(self):
-        return self.quiz.version if self.quiz  else None
+        return self.quiz.version if self.quiz else None
+
 
 class StudentResponse(Base):
     __tablename__ = "student_responses"

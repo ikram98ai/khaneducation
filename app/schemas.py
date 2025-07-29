@@ -32,7 +32,7 @@ class SubjectDetail(Subject):
 
 class LessonBase(BaseModel):
     title: str = Field(..., max_length=255)
-    content:Optional[str] = None
+    content: Optional[str] = None
 
 
 class LessonCreate(LessonBase):
@@ -119,6 +119,7 @@ class Quiz(QuizBase):
     created_at: datetime
     lesson_title: Optional[str] = None
     questions: List[QuizQuestion] = []
+
     class Config:
         from_attributes = True
 
@@ -135,7 +136,7 @@ class QuizAttempt(QuizAttemptBase):
     end_time: Optional[datetime] = None
     score: Optional[float] = None
     passed: bool
-    quiz_version:int
+    quiz_version: int
     cheating_detected: bool
 
     class Config:
@@ -143,13 +144,15 @@ class QuizAttempt(QuizAttemptBase):
 
 
 class QuizResponse(BaseModel):
-    question_id:int
+    question_id: int
     answer: str
+
 
 class QuizSubmissionResponse(BaseModel):
     attempt: QuizAttempt
     ai_feedback: str
     regenerated_quiz: Optional[Quiz] = None
+
 
 class DashboardStats(BaseModel):
     completedLessons: int

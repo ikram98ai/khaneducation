@@ -30,8 +30,10 @@ class CRUDQuiz(CRUDBase[models.Quiz, schemas.QuizBase, schemas.QuizBase]):
     def get_multi_by_lesson(self, db: Session, *, lesson_id: int, skip: int = 0, limit: int = 100) -> List[models.Quiz]:
         return db.query(self.model).filter(self.model.lesson_id == lesson_id).offset(skip).limit(limit).all()
 
+
 class CrudQuizQuestion(CRUDBase[models.QuizQuestion, schemas.QuizQuestionBase, schemas.QuizQuestionBase]):
     pass
+
 
 class CRUDQuizAttempt(CRUDBase[models.QuizAttempt, schemas.QuizAttemptBase, schemas.QuizAttemptBase]):
     pass

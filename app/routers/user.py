@@ -150,4 +150,3 @@ def get_user(
     except SQLAlchemyError as e:
         logger.error(f"Error fetching user with id {id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
-

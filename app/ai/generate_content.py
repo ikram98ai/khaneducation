@@ -137,7 +137,7 @@ def generate_quiz(lesson_content, grade_level, language):
                 "option_a": "option_a",
                 "option_b": "option_b",
                 "option_c": "option_c",
-                "option_d": "option_d",                
+                "option_d": "option_d",
                 "correct_answer": "option a",
             },
             {
@@ -145,7 +145,7 @@ def generate_quiz(lesson_content, grade_level, language):
                 "option_a": "option_a",
                 "option_b": "option_b",
                 "option_c": "option_c",
-                "option_d": "option_d",                
+                "option_d": "option_d",
                 "correct_answer": "option d",
             },
             {
@@ -153,7 +153,7 @@ def generate_quiz(lesson_content, grade_level, language):
                 "option_a": "option_a",
                 "option_b": "option_b",
                 "option_c": "option_c",
-                "option_d": "option_d",                
+                "option_d": "option_d",
                 "correct_answer": "option a",
             },
             {
@@ -161,7 +161,7 @@ def generate_quiz(lesson_content, grade_level, language):
                 "option_a": "option_a",
                 "option_b": "option_b",
                 "option_c": "option_c",
-                "option_d": "option_d",                
+                "option_d": "option_d",
                 "correct_answer": "option a",
             },
         ]

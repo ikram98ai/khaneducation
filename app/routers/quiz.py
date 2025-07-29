@@ -32,4 +32,3 @@ def submit_quiz(
     except SQLAlchemyError as e:
         logger.error(f"Error submitting quiz for student {current_student.user_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
-
