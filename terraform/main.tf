@@ -176,7 +176,7 @@ resource "aws_db_subnet_group" "aurora" {
 }
 
 resource "aws_rds_cluster_parameter_group" "aurora" {
-  family = "aurora-postgresql15"
+  family = "aurora-postgresql17"
   name   = "${var.function_name}-aurora-cluster-pg"
 
   parameter {
@@ -196,7 +196,7 @@ resource "aws_rds_cluster" "aurora" {
   cluster_identifier              = "${var.function_name}-aurora-cluster"
   engine                          = "aurora-postgresql"
   engine_mode                     = "provisioned"
-  engine_version                  = "16.8"
+  engine_version                  = "17.5.1"
   database_name                   = var.db_name
   master_username                 = var.db_username
   master_password                 = var.db_password
