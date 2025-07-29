@@ -65,7 +65,7 @@ jobs:
         run: |
           pip install uv
           uv sync
-          
+
       - name: Get Terraform Outputs
         working-directory: terraform
         id: terraform-outputs
@@ -82,4 +82,4 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           export DATABASE_URL="postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_ENDPOINT}:${DB_PORT}/${DB_NAME}"
-          alembic upgrade head
+          uv run alembic upgrade head
