@@ -20,6 +20,8 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+################################################# Creating Aurora Serverless v2 Cluster with VPC and Networking #################################################
+
 # VPC and Networking (Required for Aurora)
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
@@ -194,7 +196,7 @@ resource "aws_rds_cluster" "aurora" {
   cluster_identifier              = "${var.function_name}-aurora-cluster"
   engine                          = "aurora-postgresql"
   engine_mode                     = "provisioned"
-  engine_version                  = "15.4"
+  engine_version                  = "14.5"
   database_name                   = var.db_name
   master_username                 = var.db_username
   master_password                 = var.db_password
@@ -235,6 +237,8 @@ resource "aws_rds_cluster_instance" "aurora" {
     Name = "${var.function_name}-aurora-instance-${count.index}"
   })
 }
+
+######################################################### ECR Repository and Lambda Function #########################################################
 
 # ECR Repository
 resource "aws_ecr_repository" "khaneducation_repo" {
@@ -414,7 +418,7 @@ resource "aws_cloudwatch_log_group" "khaneducation_lambda_logs" {
   tags              = var.tags
 }
 
-#############################################################API GATEWAY CONFIGURATION#############################################################
+############################################################# API GATEWAY CONFIGURATION #############################################################
 
 # API Gateway (HTTP API)
 resource "aws_apigatewayv2_api" "khaneducation_api" {

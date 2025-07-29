@@ -7,7 +7,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock  ${LAMBDA_TASK_ROOT}
 
 # Install dependencies using uv
-RUN uv pip sync --system uv.lock
+RUN uv sync
 
 # Copy function code
 COPY . ${LAMBDA_TASK_ROOT}
