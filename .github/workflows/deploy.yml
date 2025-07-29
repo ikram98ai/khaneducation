@@ -59,12 +59,13 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.12'
 
       - name: Install Python dependencies
         run: |
-          pip install alembic psycopg2-binary sqlalchemy
-
+          pip install uv
+          uv sync
+          
       - name: Get Terraform Outputs
         working-directory: terraform
         id: terraform-outputs
