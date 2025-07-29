@@ -4,13 +4,14 @@ FROM public.ecr.aws/lambda/python:3.12
 RUN pip install uv
 
 # Copy project files
-COPY pyproject.toml uv.lock  ${LAMBDA_TASK_ROOT}
+COPY pyproject.toml uv.lock ${LAMBDA_TASK_ROOT}
 
-# Install dependencies using uv
-RUN uv sync
+# Install dependencies using uv sync with --system flag
+WORKDIR ${LAMBDA_TASK_ROOT}
+RUN uv sync --frozen --no-dev --system
 
 # Copy function code
 COPY . ${LAMBDA_TASK_ROOT}
 
-# Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
+# Set the CMD to your handler
 CMD [ "app.main.handler" ]
