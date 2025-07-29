@@ -1,4 +1,8 @@
-################################################api#####################################################
+data
+.terraform
+.terraform*
+terraform.tfstate*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -21,5 +21,26 @@ adminuser:
 dev: 
 	uv run fastapi dev app/main.py
 
-prod:
-	uv run uvicorn app.main:app --reload
+
+
+tf_backend:
+	@echo "Create S3 bucket for Terraform state"
+	aws s3 mb s3://terraform-state-20250610
+
+	@echo "Create DynamoDB table for state locking"
+	aws dynamodb create-table \
+		--table-name terraform-state-lock \
+		--attribute-definitions AttributeName=LockID,AttributeType=S \
+		--key-schema AttributeName=LockID,KeyType=HASH \
+		--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+deploy:
+	@echo "Deploying to AWS Lambda..."
+	terraform -chdir=terraform init
+	terraform -chdir=terraform plan -var="gemini_api_key=${GEMINI_API_KEY}" 
+	terraform -chdir=terraform apply -var="gemini_api_key=${GEMINI_API_KEY}" 
+	
+destroy:
+	@echo "Destroying AWS resources..."
+	terraform -chdir=terraform destroy -var="gemini_api_key=${GEMINI_API_KEY}"  -lock=false
+
