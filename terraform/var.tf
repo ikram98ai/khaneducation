@@ -65,6 +65,14 @@ variable "gemini_api_key" {
   sensitive   = true
 }
 
+
+# VPC Configuration
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
 # Database Configuration
 variable "db_name" {
   description = "Database name"
@@ -82,4 +90,17 @@ variable "db_password" {
   description = "Database password"
   type        = string
   sensitive   = true
+}
+
+# Aurora Serverless v2 Scaling Configuration
+variable "aurora_min_capacity" {
+  description = "Minimum Aurora Serverless v2 capacity"
+  type        = number
+  default     = 0
+}
+
+variable "aurora_max_capacity" {
+  description = "Maximum Aurora Serverless v2 capacity"
+  type        = number
+  default     = 2
 }
