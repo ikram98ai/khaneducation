@@ -108,9 +108,7 @@ def delete_subject(subject_id: int):
 
 # Nested Lesson routes
 @router.post("/subjects/{subject_id}/lessons/", response_model=schemas.LessonCreate)
-async def create_lesson_for_subject(
-    subject_id: int, lesson: schemas.LessonCreate, current_admin: schemas.User = Depends(get_current_admin)
-):
+async def create_lesson_for_subject(subject_id: int, lesson: schemas.LessonCreate, current_admin: schemas.User = Depends(get_current_admin)):
     db_subject = crud.crud_subject.get(id=subject_id)
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")

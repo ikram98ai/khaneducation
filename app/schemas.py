@@ -3,12 +3,14 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 import enum
 
+
 class UserRoleEnum(enum.Enum):
     STUDENT = "student"
     INSTRUCTOR = "instructor"
     CONTENT_MANAGER = "content_manager"
     STAFF = "staff"
     ADMIN = "admin"
+
 
 class LanguageChoicesEnum(enum.Enum):
     EN = "English"
@@ -19,15 +21,16 @@ class LanguageChoicesEnum(enum.Enum):
     FA = "Persian"
     UR = "Urdu"
 
+
 class LessonStatusEnum(enum.Enum):
     DRAFT = "DR"
     VERIFIED = "VE"
+
 
 class DifficultyLevelEnum(enum.Enum):
     EASY = "EA"
     MEDIUM = "ME"
     HARD = "HA"
-
 
 
 class SubjectBase(BaseModel):
