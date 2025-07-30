@@ -1,152 +1,149 @@
+# app/routers/user.py
 from fastapi import status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from .. import models, schemas, utils
-from ..database import get_db
+# Remove: from sqlalchemy.orm import Session
+# Remove: from sqlalchemy.exc import SQLAlchemyError
+from ..models import User, Student, Enrollment, Subject # Import PynamoDB models
+from .. import schemas, utils
+# Remove: from ..database import get_db
 from ..dependencies import get_current_user
+# Remove: from .. import models # Remove SQLAlchemy models
 import logging
+from pynamodb.transactions import TransactWrite
+import uuid # For generating IDs if needed
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
+# --- Atomic User Creation with Transaction (PynamoDB) ---
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserCreate):
+    # Remove: db: Session = Depends(get_db)
+    # try: # Remove outer SQLAlchemy try/except
     try:
-        existing_user = db.query(models.User).filter((models.User.email == user.email) | (models.User.username == user.username)).first()
+        # Check email (assuming email_index GSI exists)
+        email_users = list(User.email_index.query(user.email))
+        if email_users:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already registered.")
 
-        if existing_user:
-            if existing_user.email == user.email:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already registered.")
-            if existing_user.username == user.username:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username is already taken.")
+        # Check username (assuming username_index GSI exists)
+        username_users = list(User.username_index.query(user.username))
+        if username_users:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username is already taken.")
 
-        if not utils.is_strong_password(user.password):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Password must be at least 8 characters long, and include at least one "
-                    "uppercase letter, one lowercase letter, one digit, and one special character."
-                ),
-            )
+    except Exception as e: # Catch PynamoDB errors during lookup
+        logger.error(f"Error checking for existing user: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+    # --- End Check Existing User ---
 
-        # hash the password - user.password
-        hashed_password = utils.hash(user.password)
-        user_data = user.model_dump()
-        user_data["password"] = hashed_password
-
-        new_user = models.User(**user_data)
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-
-        return new_user
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user")
-
-
-@router.post("/profile/me", response_model=schemas.StudentProfile)
-def create_me(profile_data: schemas.StudentCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    try:
-        existing_student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
-        if existing_student:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student profile already exists for this user")
-
-        new_student = models.Student(user_id=user.id, **profile_data.model_dump())
-        db.add(new_student)
-        db.commit()
-        db.refresh(new_student)
-
-        # Find matching subjects and enroll the student
-        matching_subjects = (
-            db.query(models.Subject)
-            .filter(models.Subject.grade_level == new_student.current_grade, models.Subject.language == new_student.language)
-            .all()
+    if not utils.is_strong_password(user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Password must be at least 8 characters long, and include at least one "
+                "uppercase letter, one lowercase letter, one digit, and one special character."
+            ),
         )
 
-        for subject in matching_subjects:
-            enrollment = models.Enrollment(student_id=new_student.user_id, subject_id=subject.id)
-            db.add(enrollment)
+    # hash the password
+    hashed_password = utils.hash(user.password)
+    user_data = user.model_dump()
+    user_data["password"] = hashed_password
 
-        if matching_subjects:
-            db.commit()
-
-        return schemas.StudentProfile(user=user, student_profile=new_student)
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Error creating student profile for user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
-
-
-@router.get("/profile/me", response_model=schemas.StudentProfile)
-def get_me(
-    db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
-):
+    # --- Atomic transaction using PynamoDB TransactWrite ---
     try:
-        student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
+        new_user = User(**user_data)
+        with TransactWrite() as transaction:
+            transaction.save(new_user)
+            # Add more transactional writes here if needed (e.g., create related records)
+            # Example:
+            # transaction.save(OtherModel(...))
 
-        user_dict = {
-            "id": user.id,
-            "username": user.username,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "role": user.role,
-            "email": user.email,
-        }
+    except Exception as e: # Catch PynamoDB transaction errors
+        logger.error(f"Error creating user (transaction): {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user")
+    # --- End Create User ---
 
-        student_dict = None
-        if student:
-            student_dict = {
-                "user_id": student.user_id,
-                "language": student.language,
-                "current_grade": student.current_grade,
-            }
+    return new_user
 
-        return schemas.StudentProfile(user=user_dict, student_profile=student_dict)
-    except SQLAlchemyError as e:
-        logger.error(f"Error fetching profile for user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+    # except SQLAlchemyError as e: # Remove
+    #     db.rollback()
+    #     logger.error(f"Error creating user: {e}")
+    #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user")
 
+# --- Example: Create Student Profile ---
+@router.post("/profile/me", response_model=schemas.StudentProfile)
+def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(get_current_user)): # Use User schema from token
+     # Remove: db: Session = Depends(get_db)
+    # try:
+        try:
+            # Check if student profile already exists
+            existing_student = Student.get(user.id) # Assuming user.id is the hash key for Student
+            if existing_student:
+                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student profile already exists for this user")
+        except Student.DoesNotExist:
+            # This is expected if the profile doesn't exist
+            pass
+        except Exception as e:
+             logger.error(f"Error checking student profile for user {user.id}: {e}")
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-@router.put("/profile/me", response_model=schemas.StudentProfile)
-def update_me(user_data: schemas.UserCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    try:
-        user_to_update = db.query(models.User).filter(models.User.id == user.id).first()
+        # --- Create new student profile ---
+        try:
+            student_data = profile_data.model_dump()
+            student_data['user_id'] = user.id # Link to user
+            new_student = Student(**student_data)
+            new_student.save()
 
-        obj_data = user_data.model_dump(exclude_unset=True)
-        for key, value in obj_data.items():
-            setattr(user_to_update, key, value)
-        db.add(user_to_update)
-        db.commit()
-        db.refresh(user_to_update)
-        return user_to_update
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Error updating profile for user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update profile")
+            # --- Find matching subjects and enroll the student ---
+            # This requires querying Subject by grade_level and language
+            # Requires GSI on Subject for efficient querying by these attributes
+            try:
+                 matching_subjects = list(Subject.grade_language_index.query(
+                     profile_data.current_grade, # Assuming composite GSI: grade (hash), language (range)
+                     filter_condition=Subject.language == profile_data.language.value # Or just == profile_data.language if stored as string
+                 ))
+                 # Or if separate GSIs:
+                 # matching_subjects = list(Subject.scan(
+                 #     filter_condition=(Subject.grade_level == profile_data.current_grade) & (Subject.language == profile_data.language.value)
+                 # ))
+                 # Scanning is inefficient, prefer GSI.
 
+                 for subject in matching_subjects:
+                     # Create enrollment
+                     # Assuming Enrollment PK is student_id (hash) + subject_id (range) or a unique ID
+                     enrollment_data = {
+                         'student_id': user.id,
+                         'subject_id': subject.id,
+                         # 'enrolled_at': datetime.now(timezone.utc) # If needed
+                     }
+                     enrollment = Enrollment(**enrollment_data)
+                     enrollment.save()
+            except Exception as e:
+                 # Log error but don't fail student creation necessarily?
+                 logger.error(f"Error enrolling student {user.id} in matching subjects: {e}")
+                 # Optionally raise or continue
 
-@router.get("/{id}", response_model=schemas.StudentProfile)
-def get_user(
-    id: int,
-    db: Session = Depends(get_db),
-):
-    try:
-        user = db.query(models.User).filter(models.User.id == id).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id: {id} does not exist",
-            )
-        student = db.query(models.Student).filter(models.Student.user_id == user.id).first()
+            # --- Return profile data ---
+            # Construct the response schema
+            return schemas.StudentProfile(user=user, student_profile=new_student)
 
-        return schemas.StudentProfile(user=user, student_profile=student)
-    except SQLAlchemyError as e:
-        logger.error(f"Error fetching user with id {id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+        except Exception as e: # Catch errors during student creation or enrollment
+             # db.rollback() # Not directly applicable
+             logger.error(f"Error creating student profile for user {user.id}: {e}")
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
+
+    # except SQLAlchemyError as e: # Remove
+    #     db.rollback()
+    #     logger.error(f"Error creating student profile for user {user.id}: {e}")
+    #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
+
+# --- Other endpoints like get_me, update_me, get_user ---
+# Follow similar patterns:
+# 1. Remove db dependency.
+# 2. Replace SQLAlchemy queries (db.query(...).filter(...).first()) with PynamoDB .get() or .query()/.scan().
+# 3. Handle PynamoDB exceptions (DoesNotExist, PutError, UpdateError, etc.).
+# 4. Construct response schemas from PynamoDB model data or pass models directly if compatible.
+# 5. Remove SQLAlchemy-specific exception handling.

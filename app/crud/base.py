@@ -1,75 +1,92 @@
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+# app/crud/base_pynamodb.py (or replace app/crud/base.py)
+# from sqlalchemy.orm import Session # Remove
+# from sqlalchemy.exc import SQLAlchemyError # Remove
 from fastapi import HTTPException, status
 import logging
-from .. import schemas
-from typing import Type, TypeVar, Generic, List, Optional
-from ..database import Base
+# from .. import schemas # Keep if needed for type hints
+# from typing import Type, TypeVar, Generic, List, Optional # Keep, adjust if needed
+# from ..database import Base # Remove SQLAlchemy Base
+
+# --- PynamoDB Imports ---
+from pynamodb.models import Model
+from pynamodb.exceptions import DoesNotExist, PutError, UpdateError, DeleteError
+from typing import Type, TypeVar, Generic, List, Optional, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-ModelType = TypeVar("ModelType", bound=Base)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=schemas.BaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=schemas.BaseModel)
+# TypeVar for PynamoDB Model
+ModelType = TypeVar("ModelType", bound=Model) # Bound to PynamoDB Model
+# Keep schema TypeVars if needed
+# CreateSchemaType = TypeVar("CreateSchemaType", bound=schemas.BaseModel)
+# UpdateSchemaType = TypeVar("UpdateSchemaType", bound=schemas.BaseModel)
 
-
-class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+# --- Simplified CRUDBase for PynamoDB ---
+# Note: PynamoDB handles saving/updating/deleting model instances directly.
+# This base class becomes less necessary, but can provide common error handling/logging.
+class CRUDBase(Generic[ModelType]): # Simplify generic signature
     def __init__(self, model: Type[ModelType]):
         self.model = model
 
-    def get(self, db: Session, id: int) -> Optional[ModelType]:
+    def get(self, hash_key: Any, range_key: Any = None) -> Optional[ModelType]:
+        """Fetch an item by its primary key."""
         try:
-            return db.query(self.model).filter(self.model.id == id).first()
-        except SQLAlchemyError as e:
-            logger.error(f"Error fetching {self.model.__name__} with id {id}: {e}")
+            if range_key is not None:
+                return self.model.get(hash_key, range_key)
+            else:
+                return self.model.get(hash_key)
+        except DoesNotExist:
+            return None
+        except Exception as e: # Catch other PynamoDB errors
+            logger.error(f"Error fetching {self.model.Meta.table_name} with key ({hash_key}, {range_key}): {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[ModelType]:
-        try:
-            return db.query(self.model).offset(skip).limit(limit).all()
-        except SQLAlchemyError as e:
-            logger.error(f"Error fetching multiple {self.model.__name__}: {e}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+    def get_multi(self, *args, **kwargs) -> List[ModelType]: # Pass through query args
+        """Fetch multiple items. Pass query arguments directly to model.query or model.scan."""
+        # Example: list(self.model.scan()) or list(self.model.query(hash_key, filter_condition=...))
+        # This is highly dependent on your access patterns and model design.
+        # Base class can't implement this generically well for PynamoDB.
+        # It's often better to implement specific query methods in subclasses.
+        raise NotImplementedError("Use specific query methods on the model or implement in subclass.")
 
-    def create(self, db: Session, *, obj_in: CreateSchemaType, commit: bool = True) -> ModelType:
+    def create(self, obj_in_data: dict) -> ModelType: # Accept dict data
+        """Create a new item."""
         try:
-            obj_in_data = obj_in.dict()
             db_obj = self.model(**obj_in_data)
-            db.add(db_obj)
-            if commit:
-                db.commit()
-                db.refresh(db_obj)
+            db_obj.save()
             return db_obj
-        except SQLAlchemyError as e:
-            db.rollback()
-            logger.error(f"Error creating {self.model.__name__}: {e}")
+        except PutError as e: # Specific PynamoDB error
+            logger.error(f"Error creating {self.model.Meta.table_name}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create item")
+        except Exception as e:
+             logger.error(f"Unexpected error creating {self.model.Meta.table_name}: {e}")
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create item")
 
-    def update(self, db: Session, *, db_obj: ModelType, obj_in: UpdateSchemaType) -> ModelType:
+    def update(self, db_obj: ModelType, obj_in_data: dict) -> ModelType: # Pass the model instance and update data
+        """Update an existing item."""
         try:
-            obj_data = obj_in.dict(exclude_unset=True)
-            for key, value in obj_data.items():
-                setattr(db_obj, key, value)
-            db.add(db_obj)
-            db.commit()
-            db.refresh(db_obj)
+            # Update attributes on the model instance
+            for key, value in obj_in_data.items():
+                if hasattr(db_obj, key):
+                    setattr(db_obj, key, value)
+            db_obj.save() # PynamoDB save handles update
             return db_obj
-        except SQLAlchemyError as e:
-            db.rollback()
-            logger.error(f"Error updating {self.model.__name__} with id {db_obj.id}: {e}")
+        except UpdateError as e: # Specific PynamoDB error
+            logger.error(f"Error updating {self.model.Meta.table_name} with key {getattr(db_obj, db_obj.attribute_values.get(db_obj._hash_key_attribute().attr_name, 'unknown'))}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update item")
+        except Exception as e:
+             logger.error(f"Unexpected error updating {self.model.Meta.table_name}: {e}")
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update item")
 
-    def remove(self, db: Session, *, id: int) -> ModelType:
+    def remove(self, db_obj: ModelType) -> ModelType: # Pass the model instance to delete
+        """Delete an item."""
         try:
-            obj = db.query(self.model).get(id)
-            if not obj:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{self.model.__name__} not found")
-            db.delete(obj)
-            db.commit()
-            return obj
-        except SQLAlchemyError as e:
-            db.rollback()
-            logger.error(f"Error deleting {self.model.__name__} with id {id}: {e}")
+            db_obj.delete()
+            return db_obj
+        except DeleteError as e: # Specific PynamoDB error
+            logger.error(f"Error deleting {self.model.Meta.table_name} with key {getattr(db_obj, db_obj.attribute_values.get(db_obj._hash_key_attribute().attr_name, 'unknown'))}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete item")
+        except Exception as e:
+             logger.error(f"Unexpected error deleting {self.model.Meta.table_name}: {e}")
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete item")

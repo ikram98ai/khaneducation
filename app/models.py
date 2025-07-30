@@ -1,32 +1,20 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Text,
-    ForeignKey,
-    DateTime,
-    Boolean,
-    Float,
-    Enum,
-    CheckConstraint,
-)
-from sqlalchemy.orm import relationship, validates
-from sqlalchemy.sql import func
-from sqlalchemy.sql.sqltypes import TIMESTAMP
-from sqlalchemy.ext.hybrid import hybrid_property
-from .database import Base
-import enum
+# app/models.py
+from pynamodb.models import Model
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute
+from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
+from .config import settings
+import enum, uuid
+import json
+from datetime import datetime
 
-
-class UserRole(enum.Enum):
+class UserRoleEnum(enum.Enum):
     STUDENT = "student"
     INSTRUCTOR = "instructor"
     CONTENT_MANAGER = "content_manager"
     STAFF = "staff"
     ADMIN = "admin"
 
-
-class LanguageChoices(enum.Enum):
+class LanguageChoicesEnum(enum.Enum):
     EN = "English"
     FR = "French"
     PS = "Pashto"
@@ -35,165 +23,150 @@ class LanguageChoices(enum.Enum):
     FA = "Persian"
     UR = "Urdu"
 
-
-class LessonStatus(enum.Enum):
+class LessonStatusEnum(enum.Enum):
     DRAFT = "DR"
     VERIFIED = "VE"
 
-
-class DifficultyLevel(enum.Enum):
+class DifficultyLevelEnum(enum.Enum):
     EASY = "EA"
     MEDIUM = "ME"
     HARD = "HA"
 
+# --- Define Global Secondary Indexes (GSI) ---
+class UserEmailIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = 'email-index'
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection() # Projects all attributes
 
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, nullable=False)
-    username = Column(String, unique=True)
-    first_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=True)
-    email = Column(String, nullable=False, unique=True)
-    password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.STUDENT)
-    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    email = UnicodeAttribute(hash_key=True)
 
+class UsernameIndex(GlobalSecondaryIndex):
+     class Meta:
+         index_name = 'username-index'
+         read_capacity_units = 1
+         write_capacity_units = 1
+         projection = AllProjection()
 
-class Subject(Base):
-    __tablename__ = "subjects"
-    __table_args__ = (CheckConstraint("grade_level BETWEEN 1 AND 12", name="grade_level_range"),)
+     username = UnicodeAttribute(hash_key=True)
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    description = Column(Text)
-    grade_level = Column(Integer, nullable=False)
-    language = Column(Enum(LanguageChoices, values_callable=lambda x: [e.value for e in x]), default=LanguageChoices.EN)
-
-    lessons = relationship("Lesson", back_populates="subject")
-    enrollments = relationship("Enrollment", back_populates="subject")
-
-    @validates("name")
-    def normalize_name(self, key, name):
-        return name.strip().title()
+class BaseModel(Model):
+    class Meta:
+        region = settings.aws_region
+        host = settings.dynamodb_endpoint_url
+        aws_access_key_id = settings.aws_access_key_id
+        aws_secret_access_key = settings.aws_secret_access_key
+    
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
 
-class Lesson(Base):
-    __tablename__ = "lessons"
+class User(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'users'
+    
+    # Attributes
+    username = UnicodeAttribute(null=True) # Make nullable if needed
+    first_name = UnicodeAttribute(null=True)
+    last_name = UnicodeAttribute(null=True)
+    email = UnicodeAttribute() # Assuming email is required
+    password = UnicodeAttribute() 
+    role = UnicodeAttribute(default=UserRoleEnum.STUDENT.value)
+    created_at = UTCDateTimeAttribute(default_for_new=None) # PynamoDB handles default timestamps
 
-    id = Column(Integer, primary_key=True, index=True)
-    instructor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
-    title = Column(String(255), nullable=False)
-    content = Column(Text, nullable=False)
-    status = Column(Enum(LessonStatus), default=LessonStatus.DRAFT)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    verified_at = Column(DateTime(timezone=True), nullable=True)
+    # Define GSI
+    email_index = UserEmailIndex()
+    username_index = UsernameIndex()
 
-    subject = relationship("Subject", back_populates="lessons")
-    practice_tasks = relationship("PracticeTask", back_populates="lesson")
-    quizzes = relationship("Quiz", back_populates="lesson")
+# Subject (simplified)
+class Subject(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'subjects'
 
+    name = UnicodeAttribute()
+    description = UnicodeAttribute(null=True)
+    grade_level = NumberAttribute()
+    language = UnicodeAttribute(default=LanguageChoicesEnum.EN.value)
 
-class Student(Base):
-    __tablename__ = "students"
-    __table_args__ = (CheckConstraint("current_grade BETWEEN 1 AND 12", name="student_grade_range"),)
+# Lesson (using composite key)
+class Lesson(BaseModel):
+     class Meta(BaseModel.Meta):
+         table_name = 'lessons'
 
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    language = Column(Enum(LanguageChoices), default=LanguageChoices.EN)
-    current_grade = Column(Integer, nullable=False)
+     subject_id = UnicodeAttribute()
+     instructor_id = UnicodeAttribute() # Link to User ID
+     title = UnicodeAttribute()
+     content = UnicodeAttribute()
+     status = UnicodeAttribute(default=LessonStatusEnum.DRAFT.value)
+     created_at = UTCDateTimeAttribute(default_for_new=None)
+     verified_at = UTCDateTimeAttribute(null=True)
 
-    enrollments = relationship("Enrollment", back_populates="student")
-    quiz_attempts = relationship("QuizAttempt", back_populates="student")
+# Student
+class Student(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'students'
 
+    # Primary Key (likely the User ID it's linked to)
+    user_id = UnicodeAttribute()
+    language = UnicodeAttribute(default=LanguageChoicesEnum.EN.value)
+    current_grade = NumberAttribute()
+    # Store enrollments as a list of dicts: [{"subject_id": ..., "enrolled_at": ...}, ...]
+    enrollments = UnicodeAttribute(null=True)  # Store as JSON string
 
-class Enrollment(Base):
-    __tablename__ = "enrollments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.user_id"), nullable=False)
-    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
-    enrolled_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    student = relationship("Student", back_populates="enrollments")
-    subject = relationship("Subject", back_populates="enrollments")
-
-
-class PracticeTask(Base):
-    __tablename__ = "practice_tasks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    lesson_id = Column(Integer, ForeignKey("lessons.id"), nullable=False)
-    content = Column(Text, nullable=False)
-    difficulty = Column(Enum(DifficultyLevel), default=DifficultyLevel.MEDIUM)
-    ai_generated = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    lesson = relationship("Lesson", back_populates="practice_tasks")
-
-
-class Quiz(Base):
-    __tablename__ = "quizzes"
-
-    id = Column(Integer, primary_key=True, index=True)
-    lesson_id = Column(Integer, ForeignKey("lessons.id"), nullable=False)
-    version = Column(Integer, default=1)
-    ai_generated = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    lesson = relationship("Lesson", back_populates="quizzes")
-    questions = relationship("QuizQuestion", back_populates="quiz")
-    attempts = relationship("QuizAttempt", back_populates="quiz")
+    def add_enrollment(self, subject_id, enrolled_at):
+        enrollments = []
+        if self.enrollments:
+            enrollments = json.loads(self.enrollments)
+        enrollments.append({
+            "subject_id": subject_id,
+            "enrolled_at": enrolled_at.isoformat() if isinstance(enrolled_at, datetime) else enrolled_at
+        })
+        self.enrollments = json.dumps(enrollments)
 
 
-class QuizQuestion(Base):
-    __tablename__ = "quiz_questions"
+# PracticeTask
+class PracticeTask(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'practice_tasks'
 
-    id = Column(Integer, primary_key=True, index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
-    question_text = Column(Text, nullable=False)
-    option_a = Column(String, nullable=False)
-    option_b = Column(String, nullable=False)
-    option_c = Column(String, nullable=False)
-    option_d = Column(String, nullable=False)
-    correct_answer = Column(String, nullable=False)
+    
+    lesson_id = UnicodeAttribute() # Link to Lesson (subject_id can be derived if needed)
+    content = UnicodeAttribute()
+    difficulty = UnicodeAttribute(default=DifficultyLevelEnum.MEDIUM.value)
+    ai_generated = BooleanAttribute(default=True)
+    created_at = UTCDateTimeAttribute(default_for_new=None)
 
-    quiz = relationship("Quiz", back_populates="questions")
+# Quiz
+class Quiz(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'quizzes'
 
+    lesson_id = UnicodeAttribute() # Link to Lesson
+    version_number = NumberAttribute(default=1)
+    ai_generated = BooleanAttribute(default=True)
+    created_at = UTCDateTimeAttribute(default_for_new=None)
+    quiz_questions = UnicodeAttribute(null=True) # Store JSON or serialized list of question IDs
 
-class QuizAttempt(Base):
-    __tablename__ = "quiz_attempts"
-    __table_args__ = (CheckConstraint("score BETWEEN 0 AND 100", name="score_range"),)
+# QuizAttempt (composite key)
+class QuizAttempt(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'quiz_attempts'
 
-    id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.user_id"), nullable=False)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
-    start_time = Column(DateTime(timezone=True), server_default=func.now())
-    end_time = Column(DateTime(timezone=True), nullable=True)
-    score = Column(Float, nullable=True)
-    passed = Column(Boolean, default=False)
-    cheating_detected = Column(Boolean, default=False)
+    student_id = UnicodeAttribute()
+    # Unique ID for the attempt
+    quiz_id = UnicodeAttribute() # Link to Quiz
+    start_time = UTCDateTimeAttribute(default_for_new=None)
+    end_time = UTCDateTimeAttribute(null=True)
+    score = NumberAttribute(null=True)
+    passed = BooleanAttribute(default=False)
+    cheating_detected = BooleanAttribute(default=False)
 
-    student = relationship("Student", back_populates="quiz_attempts")
-    quiz = relationship("Quiz", back_populates="attempts")
-    responses = relationship("StudentResponse", back_populates="attempt")
-
-    @hybrid_property
-    def lesson_title(self):
-        return self.quiz.lesson.title if self.quiz and self.quiz.lesson else None
-
-    @hybrid_property
-    def quiz_version(self):
-        return self.quiz.version if self.quiz else None
-
-
-class StudentResponse(Base):
-    __tablename__ = "student_responses"
-
-    id = Column(Integer, primary_key=True, index=True)
-    attempt_id = Column(Integer, ForeignKey("quiz_attempts.id"), nullable=False)
-    question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
-    student_answer = Column(Text, nullable=False)
-    is_correct = Column(Boolean, nullable=False)
-
-    attempt = relationship("QuizAttempt", back_populates="responses")
-    question = relationship("QuizQuestion")
+# StudentResponse
+class StudentResponse(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = 'student_responses'
+    
+    attempt_id = UnicodeAttribute() # Link to QuizAttempt
+    question_id = UnicodeAttribute() # Link to QuizQuestion
+    student_answer = UnicodeAttribute()
+    is_correct = BooleanAttribute()

@@ -68,7 +68,7 @@ def get_quiz(
             return None
 
         # If no successful attempt, load the quiz
-        quiz = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).order_by(desc(Quiz.version)).first()
+        quiz = db.query(Quiz).filter(Quiz.lesson_id == lesson_id).order_by(desc(Quiz.version_number)).first()
         if not quiz:
             return None
 
@@ -97,7 +97,7 @@ def get_quiz_attempts(
             db.query(QuizAttempt)
             .join(Quiz)
             .filter(Quiz.lesson_id == lesson_id, QuizAttempt.student_id == student.user_id)
-            .order_by(desc(Quiz.version))
+            .order_by(desc(Quiz.version_number))
             .offset(skip)
             .limit(limit)
             .all()

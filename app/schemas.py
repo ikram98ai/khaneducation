@@ -1,15 +1,40 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
+import enum
 
-from .models import UserRole, LanguageChoices, LessonStatus, DifficultyLevel
+class UserRoleEnum(enum.Enum):
+    STUDENT = "student"
+    INSTRUCTOR = "instructor"
+    CONTENT_MANAGER = "content_manager"
+    STAFF = "staff"
+    ADMIN = "admin"
+
+class LanguageChoicesEnum(enum.Enum):
+    EN = "English"
+    FR = "French"
+    PS = "Pashto"
+    ES = "Spanish"
+    AR = "Arabic"
+    FA = "Persian"
+    UR = "Urdu"
+
+class LessonStatusEnum(enum.Enum):
+    DRAFT = "DR"
+    VERIFIED = "VE"
+
+class DifficultyLevelEnum(enum.Enum):
+    EASY = "EA"
+    MEDIUM = "ME"
+    HARD = "HA"
+
 
 
 class SubjectBase(BaseModel):
     name: str = Field(..., max_length=100)
     description: Optional[str] = None
     grade_level: int = Field(..., ge=1, le=12)
-    language: LanguageChoices = LanguageChoices.EN
+    language: LanguageChoicesEnum = LanguageChoicesEnum.EN
 
 
 class SubjectCreate(SubjectBase):
@@ -38,14 +63,14 @@ class LessonBase(BaseModel):
 class LessonCreate(LessonBase):
     subject_id: Optional[int] = None
     instructor_id: Optional[int] = None
-    status: Optional[LessonStatus] = None
+    status: Optional[LessonStatusEnum] = None
 
 
 class Lesson(LessonBase):
     id: int
     instructor_id: int
     subject_id: Optional[int] = None
-    status: LessonStatus
+    status: LessonStatusEnum
     created_at: datetime
     verified_at: Optional[datetime] = None
     progress: Optional[float] = 0.0
@@ -80,7 +105,7 @@ class Enrollment(EnrollmentBase):
 class PracticeTaskBase(BaseModel):
     lesson_id: int
     content: str
-    difficulty: DifficultyLevel = DifficultyLevel.MEDIUM
+    difficulty: DifficultyLevelEnum = DifficultyLevelEnum.MEDIUM
 
 
 class PracticeTask(PracticeTaskBase):
@@ -190,7 +215,7 @@ class StudentDashboard(BaseModel):
 
 
 class StudentBase(BaseModel):
-    language: LanguageChoices
+    language: LanguageChoicesEnum
     current_grade: int = Field(..., ge=1, le=12)
 
 
@@ -209,7 +234,7 @@ class UserBase(BaseModel):
     username: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[UserRoleEnum] = None
     email: EmailStr
 
 
@@ -246,7 +271,7 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
     username: Optional[str] = None
     email: Optional[EmailStr] = None
-    role: Optional[UserRole] = None
+    role: Optional[UserRoleEnum] = None
 
 
 class AdminDashboard(BaseModel):
