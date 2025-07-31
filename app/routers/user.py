@@ -4,7 +4,8 @@ from .. import schemas, utils, crud
 from ..dependencies import get_current_user
 import logging
 from pynamodb.transactions import TransactWrite
-
+from pynamodb.connection import Connection
+import enum
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,9 +41,15 @@ def create_user(user: schemas.UserCreate):
     user_data = user.model_dump()
     user_data["password"] = hashed_password
 
+    # Convert Enum to string
+    if isinstance(user_data.get("role"), enum.Enum):
+        user_data["role"] = user_data["role"].value
+
     try:
         new_user = User(**user_data)
-        with TransactWrite() as transaction:
+        # Create a connection for the transaction
+        conn = Connection()
+        with TransactWrite(connection=conn) as transaction:
             transaction.save(new_user)
 
     except Exception as e:

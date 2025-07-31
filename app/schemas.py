@@ -45,7 +45,7 @@ class SubjectCreate(SubjectBase):
 
 
 class Subject(SubjectBase):
-    id: int
+    id: str
     total_lessons: Optional[int] = None
     completed_lessons: Optional[int] = None
     progress: Optional[float] = None
@@ -70,8 +70,8 @@ class LessonCreate(LessonBase):
 
 
 class Lesson(LessonBase):
-    id: int
-    instructor_id: int
+    id: str
+    instructor_id: str
     subject_id: Optional[int] = None
     status: LessonStatusEnum
     created_at: datetime
@@ -83,8 +83,8 @@ class Lesson(LessonBase):
 
 
 class EnrollmentBase(BaseModel):
-    student_id: int
-    subject_id: int
+    student_id: str
+    subject_id: str
 
 
 class EnrolledSubject(Subject):
@@ -98,7 +98,7 @@ class EnrolledSubject(Subject):
 
 
 class Enrollment(EnrollmentBase):
-    id: int
+    id: str
     enrolled_at: datetime
 
     class Config:
@@ -106,13 +106,13 @@ class Enrollment(EnrollmentBase):
 
 
 class PracticeTaskBase(BaseModel):
-    lesson_id: int
+    lesson_id: str
     content: str
     difficulty: DifficultyLevelEnum = DifficultyLevelEnum.MEDIUM
 
 
 class PracticeTask(PracticeTaskBase):
-    id: int
+    id: str
     ai_generated: bool
     created_at: datetime
 
@@ -121,7 +121,7 @@ class PracticeTask(PracticeTaskBase):
 
 
 class QuizQuestionBase(BaseModel):
-    quiz_id: int
+    quiz_id: str
     question_text: str
     option_a: str
     option_b: str
@@ -130,19 +130,19 @@ class QuizQuestionBase(BaseModel):
 
 
 class QuizQuestion(QuizQuestionBase):
-    id: int
+    id: str
 
     class Config:
         from_attributes = True
 
 
 class QuizBase(BaseModel):
-    lesson_id: int
+    lesson_id: str
     version: int = 1
 
 
 class Quiz(QuizBase):
-    id: int
+    id: str
     ai_generated: bool
     created_at: datetime
     lesson_title: Optional[str] = None
@@ -153,12 +153,12 @@ class Quiz(QuizBase):
 
 
 class QuizAttemptBase(BaseModel):
-    quiz_id: int
-    student_id: int
+    quiz_id: str
+    student_id: str
 
 
 class QuizAttempt(QuizAttemptBase):
-    id: int
+    id: str
     lesson_title: str
     start_time: datetime
     end_time: Optional[datetime] = None
@@ -172,7 +172,7 @@ class QuizAttempt(QuizAttemptBase):
 
 
 class QuizResponse(BaseModel):
-    question_id: int
+    question_id: str
     answer: str
 
 
@@ -191,19 +191,19 @@ class DashboardStats(BaseModel):
 
 class AIContentRequest(BaseModel):
     query_text: str
-    subject_id: int
+    subject_id: str
     lesson_id: Optional[int] = None
 
 
 class StudentResponseBase(BaseModel):
-    attempt_id: int
-    question_id: int
+    attempt_id: str
+    question_id: str
     student_answer: str
     is_correct: bool
 
 
 class StudentResponse(StudentResponseBase):
-    id: int
+    id: str
 
     class Config:
         from_attributes = True
@@ -227,7 +227,7 @@ class StudentCreate(StudentBase):
 
 
 class Student(StudentBase):
-    user_id: int
+    user_id: str
 
     class Config:
         from_attributes = True
@@ -244,9 +244,12 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserUpdate(UserBase):
+    password: Optional[str] = None
+    
 
 class User(UserBase):
-    id: int
+    id: str
 
     class Config:
         from_attributes = True

@@ -207,9 +207,10 @@ class QuizAttemptByStudentAndQuizIndex(GlobalSecondaryIndex):
 class BaseModel(Model):
     class Meta:
         region = settings.aws_region
-        host = settings.dynamodb_endpoint_url
+        # host = settings.dynamodb_endpoint_url
         aws_access_key_id = settings.aws_access_key_id
         aws_secret_access_key = settings.aws_secret_access_key
+        billing_mode = "PAY_PER_REQUEST"
 
     id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
     created_at = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))

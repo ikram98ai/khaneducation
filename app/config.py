@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     gemini_api_key: str
 
-    dynamodb_endpoint_url: str
+    # dynamodb_endpoint_url: str
 
     class Config:
         env_file = ".env"
