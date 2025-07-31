@@ -1,8 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from .. import schemas, database, models
-from ..crud import crud_subject
+from .. import schemas, models, crud
 from ..dependencies import get_current_student
 from typing import List
 import logging
@@ -15,39 +12,35 @@ router = APIRouter(prefix="/subjects", tags=["subjects"])
 
 
 @router.get("/", response_model=List[schemas.Subject])
-def read_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+def read_subjects(limit: int = 100):
     try:
-        subjects = crud_subject.get_multi(db, skip=skip, limit=limit)
+        subjects = crud.crud_subject.get_multi(limit=limit)
         if not subjects:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No subjects found")
         return subjects
-    except SQLAlchemyError as e:
+    except Exception as e:
         logger.error(f"Error fetching subjects: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
 @router.get("/{subject_id}/", response_model=schemas.SubjectDetail)
-def read_subject(subject_id: int, db: Session = Depends(database.get_db), current_student: models.Student = Depends(get_current_student)):
-    subject = crud_subject.get(db, subject_id)
+def read_subject(subject_id: str, current_student: models.Student = Depends(get_current_student)):
+    subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
 
-    lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject.id).all()
+    lessons = crud.crud_lesson.get_by_subject(subject_id=subject.id)
     total_lessons = len(lessons)
 
     completed_lessons_count = 0
 
     for lesson in lessons:
-        lesson_quiz_attempts = (
-            db.query(models.QuizAttempt)
-            .join(models.Quiz)
-            .filter(models.Quiz.lesson_id == lesson.id, models.QuizAttempt.student_id == current_student.user_id, models.QuizAttempt.passed)
-            .count()
-        )
-
-        lesson_progress = 100.0 if lesson_quiz_attempts > 0 else 0.0
-        if lesson_progress == 100.0:
-            completed_lessons_count += 1
+        quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson.id)
+        for quiz in quizzes:
+            lesson_quiz_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=current_student.user_id, quiz_id=quiz.id)
+            if any(attempt.passed for attempt in lesson_quiz_attempts):
+                completed_lessons_count += 1
+                break
 
     return schemas.SubjectDetail(
         id=subject.id,
@@ -61,32 +54,29 @@ def read_subject(subject_id: int, db: Session = Depends(database.get_db), curren
 
 
 @router.get("/{subject_id}/details", response_model=schemas.SubjectDetail)
-def read_subject_details(subject_id: int, db: Session = Depends(database.get_db), current_student: models.Student = Depends(get_current_student)):
-    subject = crud_subject.get(db, subject_id)
+def read_subject_details(subject_id: str, current_student: models.Student = Depends(get_current_student)):
+    subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
 
-    lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject.id).all()
+    lessons = crud.crud_lesson.get_by_subject(subject_id=subject.id)
     total_lessons = len(lessons)
 
     completed_lessons_count = 0
     lessons_with_progress = []
 
     for lesson in lessons:
-        lesson_quiz_attempts = (
-            db.query(models.QuizAttempt)
-            .join(models.Quiz)
-            .filter(models.Quiz.lesson_id == lesson.id, models.QuizAttempt.student_id == current_student.user_id, models.QuizAttempt.passed)
-            .count()
-        )
-
-        lesson_progress = 100.0 if lesson_quiz_attempts > 0 else 0.0
-        if lesson_progress == 100.0:
-            completed_lessons_count += 1
-
-        lesson_schema = schemas.Lesson.from_orm(lesson)
-        lesson_schema.progress = lesson_progress
-        lessons_with_progress.append(lesson_schema)
+        quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson.id)
+        lesson_progress = 0.0
+        for quiz in quizzes:
+            lesson_quiz_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=current_student.user_id, quiz_id=quiz.id)
+            if any(attempt.passed for attempt in lesson_quiz_attempts):
+                lesson_progress = 100.0
+                completed_lessons_count += 1
+                break
+        
+        lesson.progress = lesson_progress
+        lessons_with_progress.append(lesson)
 
     return schemas.SubjectDetail(
         id=subject.id,
