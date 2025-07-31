@@ -65,21 +65,14 @@ variable "gemini_api_key" {
   sensitive   = true
 }
 
-# Database Configuration
-variable "db_name" {
-  description = "Database name"
+variable "aws_access_key" {
+  description = "AWS Access Key ID"
   type        = string
-  default     = "khaneducation"
+  sensitive   = true
 }
 
-variable "db_username" {
-  description = "Database username"
-  type        = string
-  default     = "postgres"
-}
-
-variable "db_password" {
-  description = "Database password"
+variable "aws_secret_key" {
+  description = "AWS Secret Access Key"
   type        = string
   sensitive   = true
 }

@@ -20,36 +20,6 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-################################################# Creating Aurora Serverless v2 Cluster with VPC and Networking #################################################
-
-resource "aws_rds_cluster" "aurora" {
-  cluster_identifier = "${var.function_name}-aurora-cluster"
-  engine             = "aurora-postgresql"
-  engine_mode        = "provisioned"
-  engine_version     = "17.5"
-  database_name      = var.db_name
-  master_username    = var.db_username
-  master_password    = var.db_password
-  skip_final_snapshot = true
-  storage_encrypted  = true
-
-  serverlessv2_scaling_configuration {
-    max_capacity             = 2
-    min_capacity             = 0.0
-    seconds_until_auto_pause = 600
-  }
-}
-
-resource "aws_rds_cluster_instance" "aurora" {
-  cluster_identifier = aws_rds_cluster.aurora.id
-  instance_class     = "db.serverless"
-  engine             = aws_rds_cluster.aurora.engine
-  engine_version     = aws_rds_cluster.aurora.engine_version
-}
-
-
-######################################################### ECR Repository and Lambda Function #########################################################
-
 # ECR Repository
 resource "aws_ecr_repository" "khaneducation_repo" {
   name                 = var.ecr_repository_name
@@ -105,7 +75,7 @@ resource "aws_iam_role" "lambda_role" {
   tags = var.tags
 }
 
-# IAM Policy for Lambda (Updated with VPC and RDS permissions)
+# IAM Policy for Lambda 
 resource "aws_iam_role_policy" "lambda_policy" {
   name = "${var.function_name}-lambda-policy"
   role = aws_iam_role.lambda_role.id
@@ -140,23 +110,12 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "ec2:DetachNetworkInterface"
         ]
         Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "rds-db:connect"
-        ]
-        Resource = "arn:aws:rds-db:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:dbuser:${aws_rds_cluster.aurora.cluster_identifier}/${var.db_username}"
       }
     ]
   })
 }
 
-# Attach AWS managed policy for VPC access
-resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
+
 
 # 🔧 Build & Push Docker Image
 resource "null_resource" "build_and_push_image" {
@@ -177,7 +136,6 @@ resource "null_resource" "build_and_push_image" {
   depends_on = [aws_ecr_repository.khaneducation_repo]
 }
 
-# Lambda Function (Updated with VPC configuration and database environment variables)
 resource "aws_lambda_function" "khaneducation_lambda" {
   function_name = var.function_name
   role         = aws_iam_role.lambda_role.arn
@@ -191,12 +149,10 @@ resource "aws_lambda_function" "khaneducation_lambda" {
   environment {
     variables = {
       GEMINI_API_KEY = var.gemini_api_key
-      DB_HOSTNAME    = aws_rds_cluster.aurora.endpoint
-      DB_PORT        = aws_rds_cluster.aurora.port
-      DB_PASSWORD    = var.db_password
-      DB_NAME        = var.db_name
-      DB_USERNAME    = var.db_username
-
+      AWS_REGION= var.aws_region                                         
+      AWS_ACCESS_KEY_ID=var.aws_access_key                        
+      AWS_SECRET_ACCESS_KEY=var.aws_secret_key
+                   
       DEBUG          = "False"
       SECRET_KEY     = var.secret_key
       ALGORITHM      = "HS256"
@@ -206,11 +162,9 @@ resource "aws_lambda_function" "khaneducation_lambda" {
 
   depends_on = [
     aws_iam_role_policy.lambda_policy,
-    aws_iam_role_policy_attachment.lambda_vpc_access,
     aws_cloudwatch_log_group.khaneducation_lambda_logs,
     null_resource.build_and_push_image,
     aws_ecr_repository_policy.khaneducation_repo_policy,
-    aws_rds_cluster_instance.aurora,
   ]
 
   tags = var.tags

@@ -54,7 +54,12 @@ build:
 # 	terraform -chdir=terraform apply -var="gemini_api_key=${GEMINI_API_KEY}" -var="secret_key=${SECRET_KEY}"
 destroy:
 	@echo "Destroying AWS resources..."
-	terraform -chdir=terraform destroy -var="gemini_api_key=${GEMINI_API_KEY}" -var="secret_key=${SECRET_KEY}" -var="db_password=${DB_PASSWORD}" -lock=false
+	terraform -chdir=terraform destroy \
+			  -var="gemini_api_key=${GEMINI_API_KEY}" \
+			  -var="secret_key=${SECRET_KEY}" \
+			  -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+			  -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+			  -lock=false
 
 set-secrets:
 	@echo "Setting GitHub Actions secrets..."
@@ -63,4 +68,3 @@ set-secrets:
 	gh secret set AWS_SECRET_ACCESS_KEY --body ${AWS_SECRET_ACCESS_KEY}
 	gh secret set GEMINI_API_KEY --body ${GEMINI_API_KEY}
 	gh secret set SECRET_KEY --body ${SECRET_KEY}
-	gh secret set DB_PASSWORD --body ${DB_PASSWORD}
