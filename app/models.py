@@ -42,6 +42,7 @@ class DifficultyLevelEnum(enum.Enum):
 
 class QuestionTypeEnum(enum.Enum):
     MULTIPLE_CHOICE = "multiple_choice"
+    MULTIPLE_OPTION = "multiple_option"
     TRUE_FALSE = "true_false"
     SHORT_ANSWER = "short_answer"
     ESSAY = "essay"
@@ -425,7 +426,6 @@ class StudentProgress(BaseModel):
     time_spent_minutes = NumberAttribute(default=0)
     quiz_attempts = NumberAttribute(default=0)
     best_quiz_score = NumberAttribute(null=True)
-    practice_tasks_completed = NumberAttribute(default=0)
 
     # GSI for querying progress by lesson
     lesson_index = StudentProgressLessonIndex()
