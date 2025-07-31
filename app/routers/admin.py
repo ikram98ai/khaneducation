@@ -61,9 +61,9 @@ def create_subject(subject: schemas.SubjectCreate):
     new_subject = crud.crud_subject.create(obj_in_data=subject.model_dump())
     
     # Find matching students and enroll them
-    students_to_enroll = models.Student.scan(
-        (models.Student.current_grade == new_subject.grade_level) & 
-        (models.Student.language == new_subject.language)
+    students_to_enroll = crud.crud_student.get_by_grade_and_language(
+        grade_level=new_subject.grade_level, 
+        language=new_subject.language
     )
     
     for student in students_to_enroll:
@@ -174,7 +174,7 @@ def read_tasks_for_lesson(lesson_id: str, limit: int = 100):
     db_lesson = crud.crud_lesson.get(hash_key=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    tasks = crud.crud_practice_task.get_multi(limit=limit, filter_condition=(models.PracticeTask.lesson_id == lesson_id))
+    tasks = crud.crud_practice_task.get_by_lesson(lesson_id=lesson_id)
     return tasks
 
 
@@ -194,5 +194,5 @@ def read_quizzes_for_lesson(lesson_id: str, limit: int = 100):
     db_lesson = crud.crud_lesson.get(hash_key=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    quizzes = crud.crud_quiz.get_multi(limit=limit, filter_condition=(models.Quiz.lesson_id == lesson_id))
+    quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson_id)
     return quizzes

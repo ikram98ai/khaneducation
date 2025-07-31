@@ -168,6 +168,40 @@ class QuizAttemptStudentIndex(GlobalSecondaryIndex):
     student_id = UnicodeAttribute(hash_key=True)
     id = UTCDateTimeAttribute(range_key=True)
 
+class StudentByGradeAndLanguageIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "student-grade-language-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    current_grade = NumberAttribute(hash_key=True)
+    language = UnicodeAttribute(range_key=True)
+
+class PracticeTaskByLessonIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "practice-task-lesson-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    lesson_id = UnicodeAttribute(hash_key=True)
+
+class QuizByLessonIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-lesson-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    lesson_id = UnicodeAttribute(hash_key=True)
+
+class QuizAttemptByStudentAndQuizIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-attempt-student-quiz-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    student_id = UnicodeAttribute(hash_key=True)
+    quiz_id = UnicodeAttribute(range_key=True)
+
 
 # --- Base Model ---
 class BaseModel(Model):
@@ -267,6 +301,7 @@ class Student(BaseModel):
 
     # Use proper list attribute for enrollments
     enrollments = ListAttribute(of=EnrollmentAttribute, null=True)
+    grade_language_index = StudentByGradeAndLanguageIndex()
 
     def add_enrollment(self, subject_id: str, enrolled_at: datetime = None, status: str = "active"):
         """Add a new enrollment"""
@@ -309,6 +344,7 @@ class PracticeTask(BaseModel):
     ai_generated = BooleanAttribute(default=True)
     points_possible = NumberAttribute(default=10)
     is_active = BooleanAttribute(default=True)
+    lesson_index = PracticeTaskByLessonIndex()
 
 
 class Quiz(BaseModel):
@@ -327,6 +363,7 @@ class Quiz(BaseModel):
 
     # Use proper list attribute for questions
     quiz_questions = ListAttribute(of=QuizQuestionAttribute, null=True)
+    lesson_index = QuizByLessonIndex()
 
     def add_question(self, question_text: str, question_type: str, options: List[str] = None, correct_answer: str = None, points: int = 1):
         """Add a question to the quiz"""
@@ -370,6 +407,7 @@ class QuizAttempt(BaseModel):
 
     # GSI for querying student attempts
     student_index = QuizAttemptStudentIndex()
+    student_quiz_index = QuizAttemptByStudentAndQuizIndex()
 
     def add_response(self, question_id: str, student_answer: str, is_correct: bool, points_earned: int = 0):
         """Add a response to the quiz attempt"""

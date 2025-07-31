@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.exc import SQLAlchemyError
-import logging
-from .. import schemas, database, services, models
+from .. import schemas, services, models, crud
 from ..dependencies import get_current_student
+import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -11,99 +9,108 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
-
-def get_student_practice_tasks(db: Session, student_id: int):
+def get_student_practice_tasks(student_id: str):
     try:
-        enrolled_subjects = db.query(models.Enrollment.subject_id).filter(models.Enrollment.student_id == student_id).subquery()
-        return db.query(models.PracticeTask).join(models.Lesson).filter(models.Lesson.subject_id.in_(enrolled_subjects.select())).limit(10).all()
-    except SQLAlchemyError as e:
+        student = models.Student.get(student_id)
+        enrolled_subject_ids = [e.subject_id for e in student.get_active_enrollments()]
+        if not enrolled_subject_ids:
+            return []
+        
+        all_tasks = []
+        for subject_id in enrolled_subject_ids:
+            lessons = crud.crud_lesson.get_by_subject(subject_id=subject_id)
+            for lesson in lessons:
+                tasks = crud.crud_practice_task.get_by_lesson(lesson_id=lesson.id)
+                all_tasks.extend(tasks)
+        return all_tasks[:10]
+    except models.Student.DoesNotExist:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    except Exception as e:
         logger.error(f"Error fetching practice tasks for student {student_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
 @router.get("/student/", response_model=schemas.StudentDashboard)
 def student_dashboard(
-    db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
 ):
     try:
         enrollments_data = []
-        for enrollment in current_student.enrollments:
-            subject = enrollment.subject
-            total_lessons = db.query(models.Lesson).filter(models.Lesson.subject_id == subject.id).count()
+        for enrollment in current_student.get_active_enrollments():
+            try:
+                subject = crud.crud_subject.get(hash_key=enrollment.subject_id)
+                if not subject:
+                    logger.warning(f"Subject with id {enrollment.subject_id} not found for student {current_student.user_id}")
+                    continue
 
-            completed_lessons_query = (
-                db.query(models.Lesson.id)
-                .join(models.Quiz)
-                .join(models.QuizAttempt)
-                .filter(
-                    models.Lesson.subject_id == subject.id,
-                    models.QuizAttempt.student_id == current_student.user_id,
-                    models.QuizAttempt.passed,
+                lessons = crud.crud_lesson.get_by_subject(subject_id=subject.id)
+                total_lessons = len(lessons)
+                
+                completed_lessons = 0
+                for lesson in lessons:
+                    quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson.id)
+                    for quiz in quizzes:
+                        passed_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=current_student.user_id, quiz_id=quiz.id)
+                        if any(attempt.passed for attempt in passed_attempts):
+                            completed_lessons += 1
+                            break # Move to the next lesson once a passed attempt is found
+                
+                progress = (completed_lessons / total_lessons) * 100 if total_lessons > 0 else 0
+                
+                enrollments_data.append(
+                    schemas.EnrolledSubject(
+                        id=subject.id,
+                        name=subject.name,
+                        description=subject.description,
+                        grade_level=subject.grade_level,
+                        language=subject.language,
+                        enrolled_at=enrollment.enrolled_at,
+                        total_lessons=total_lessons,
+                        completed_lessons=completed_lessons,
+                        progress=progress,
+                    )
                 )
-                .distinct()
-            )
-            completed_lessons = completed_lessons_query.count()
+            except models.Subject.DoesNotExist:
+                logger.warning(f"Subject with id {enrollment.subject_id} not found for student {current_student.user_id}")
 
-            progress = (completed_lessons / total_lessons) * 100 if total_lessons > 0 else 0
-
-            enrollments_data.append(
-                schemas.EnrolledSubject(
-                    id=subject.id,
-                    name=subject.name,
-                    description=subject.description,
-                    grade_level=subject.grade_level,
-                    language=subject.language,
-                    enrolled_at=enrollment.enrolled_at,
-                    total_lessons=total_lessons,
-                    completed_lessons=completed_lessons,
-                    progress=progress,
-                )
-            )
-
-        recent_attempts = (
-            db.query(models.QuizAttempt)
-            .options(joinedload(models.QuizAttempt.quiz).joinedload(models.Quiz.lesson))
-            .filter(models.QuizAttempt.student_id == current_student.user_id)
-            .order_by(models.QuizAttempt.start_time.desc())
-            .limit(5)
-            .all()
-        )
+        recent_attempts = crud.crud_quiz_attempt.get_by_student(student_id=current_student.user_id)
 
         return {
             "enrollments": enrollments_data,
-            "recent_attempts": recent_attempts,
+            "recent_attempts": recent_attempts[:5],
         }
-    except SQLAlchemyError as e:
+    except Exception as e:
         logger.error(f"Error fetching student dashboard for student {current_student.user_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-
 @router.get("/student/stats/", response_model=schemas.DashboardStats)
 def student_stats(
-    db: Session = Depends(database.get_db),
     current_student: models.Student = Depends(get_current_student),
 ):
     try:
-        return services.get_student_dashboard_stats(db, current_student.user_id)
-    except SQLAlchemyError as e:
+        return services.get_student_dashboard_stats(current_student.user_id)
+    except Exception as e:
         logger.error(f"Error fetching student stats for student {current_student.user_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
 @router.get("/admin/", response_model=schemas.AdminDashboard)
-def admin_dashboard(db: Session = Depends(database.get_db)):
+def admin_dashboard():
     try:
-        recent_lessons = db.query(models.Lesson).order_by(models.Lesson.created_at.desc()).limit(5).all()
-        recent_attempts = db.query(models.QuizAttempt).order_by(models.QuizAttempt.start_time.desc()).limit(10).all()
+        # These will still use scan, as there's no specific index for "latest"
+        # For a production system, you might implement a more sophisticated approach
+        # like a dedicated "latest items" table or a more complex indexing strategy.
+        recent_lessons = list(models.Lesson.scan(limit=5))
+        recent_attempts = list(models.QuizAttempt.scan(limit=10))
+        
         return {
-            "total_students": db.query(models.Student).count(),
-            "total_lessons": db.query(models.Lesson).count(),
-            "total_subjects": db.query(models.Subject).count(),
-            "total_quizzes": db.query(models.Quiz).count(),
-            "recent_lessons": [schemas.Lesson.from_orm(lesson) for lesson in recent_lessons],
-            "recent_attempts": [schemas.QuizAttempt.from_orm(attempt) for attempt in recent_attempts],
+            "total_students": models.Student.count(),
+            "total_lessons": models.Lesson.count(),
+            "total_subjects": models.Subject.count(),
+            "total_quizzes": models.Quiz.count(),
+            "recent_lessons": recent_lessons,
+            "recent_attempts": recent_attempts,
         }
-    except SQLAlchemyError as e:
+    except Exception as e:
         logger.error(f"Error fetching admin dashboard: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
