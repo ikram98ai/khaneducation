@@ -77,7 +77,7 @@ class UserEmailIndex(GlobalSecondaryIndex):
         index_name = "email-index"
         read_capacity_units = 1
         write_capacity_units = 1
-        projection = KeysOnlyProjection()  # More efficient for lookups
+        projection = AllProjection()  # More efficient for lookups
 
     email = UnicodeAttribute(hash_key=True)
 
