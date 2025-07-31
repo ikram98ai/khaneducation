@@ -13,6 +13,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+@router.get("/{id}/", response_model=schemas.User)
+def get_user(id: str):
+    try:
+        user = crud.crud_user.get(hash_key=id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {id} does not exist")
+        return user
+    except Exception as e:
+        logger.error(f"Error fetching user {id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+    
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.User)
 def create_user(user: schemas.UserCreate):
     try:
@@ -59,7 +70,7 @@ def create_user(user: schemas.UserCreate):
     return new_user
 
 
-@router.post("/profile/me", response_model=schemas.StudentProfile)
+@router.post("/profile/me/", response_model=schemas.StudentProfile)
 def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(get_current_user)):
     try:
         existing_student = crud.crud_student.get(hash_key=user.id)
@@ -73,6 +84,8 @@ def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(
 
     try:
         student_data = profile_data.model_dump()
+        if isinstance(student_data.get("language"), enum.Enum):
+            student_data["language"] = student_data["language"].value
         student_data["user_id"] = user.id
         new_student = Student(**student_data)
         new_student.save()
@@ -97,12 +110,12 @@ def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
 
 
-@router.get("/me", response_model=schemas.User)
+@router.get("/profile/me/", response_model=schemas.User)
 def get_me(current_user: schemas.User = Depends(get_current_user)):
     return current_user
 
 
-@router.put("/me", response_model=schemas.User)
+@router.put("/profile/me/", response_model=schemas.User)
 def update_me(user_update: schemas.UserUpdate, current_user: schemas.User = Depends(get_current_user)):
     try:
         user_to_update = crud.crud_user.get(hash_key=current_user.id)
@@ -113,6 +126,8 @@ def update_me(user_update: schemas.UserUpdate, current_user: schemas.User = Depe
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
     update_data = user_update.model_dump(exclude_unset=True)
+    if isinstance(update_data.get("role"), enum.Enum):
+        update_data["role"] = update_data["role"].value
     for key, value in update_data.items():
         setattr(user_to_update, key, value)
 
@@ -123,14 +138,3 @@ def update_me(user_update: schemas.UserUpdate, current_user: schemas.User = Depe
         logger.error(f"Error updating user {current_user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update user")
 
-
-@router.get("/{id}", response_model=schemas.User)
-def get_user(id: str):
-    try:
-        user = crud.crud_user.get(hash_key=id)
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {id} does not exist")
-        return user
-    except Exception as e:
-        logger.error(f"Error fetching user {id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")

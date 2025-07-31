@@ -149,10 +149,7 @@ resource "aws_lambda_function" "khaneducation_lambda" {
   environment {
     variables = {
       GEMINI_API_KEY = var.gemini_api_key
-      AWS_REGION= var.aws_region                                         
-      AWS_ACCESS_KEY_ID=var.aws_access_key                        
-      AWS_SECRET_ACCESS_KEY=var.aws_secret_key
-                   
+  
       DEBUG          = "False"
       SECRET_KEY     = var.secret_key
       ALGORITHM      = "HS256"

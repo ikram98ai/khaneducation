@@ -18,8 +18,10 @@ def login(
     user_credentials: schemas.UserLogin,
 ):
     try:
-        matching_user = next(User.email_index.query(user_credentials.email), None)
+        matching_user = next(User.email_index.query(user_credentials.email))
         user = User.get(matching_user.id)
+    except StopIteration:
+        user = None
     except Exception as e:
         logger.error(f"Database error during user lookup for email {user_credentials.email}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
