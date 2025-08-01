@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(routers.user.router)
+app.include_router(routers.user_profile.router)
 app.include_router(routers.auth.router)
 app.include_router(routers.subject.router)
 app.include_router(routers.lesson.router)

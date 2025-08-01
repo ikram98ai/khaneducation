@@ -72,17 +72,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserSchema:
 
 
 async def get_current_student(user: UserSchema = Depends(get_current_user)) -> StudentSchema:
-    if user.role != UserRoleEnum.STUDENT:
+    print("Checking current student...", user.role, UserRoleEnum.STUDENT, str(user.role) == str(UserRoleEnum.STUDENT))
+    if str(user.role) != str(UserRoleEnum.STUDENT):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Student profile required",
         )
 
     # Verify student profile exists in PynamoDB
-    student = None
-    for s in Student.query(user.id):
-        student = s
-        break
+    student = Student.get(user.id)
 
     if not student:
         raise HTTPException(

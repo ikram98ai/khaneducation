@@ -62,7 +62,7 @@ class CRUDLesson(CRUDBase[Lesson]):
 class CRUDStudent(CRUDBase[Student]):
     def get_by_user_id(self, user_id: str) -> Optional[Student]:
         try:
-            results = list(self.model.scan(Student.user_id == user_id))
+            results = list(self.model.query(user_id))
             return results[0] if results else None
         except Exception as e:
             logger.error(f"Error fetching student by user_id {user_id}: {e}")
@@ -94,14 +94,14 @@ class CRUDQuiz(CRUDBase[Quiz]):
 class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
     def get_by_student(self, student_id: str) -> List[QuizAttempt]:
         try:
-            return list(self.model.student_index.query(student_id))
+            return list(self.model.query(student_id))
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
     def get_by_student_and_quiz(self, student_id: str, quiz_id: str) -> List[QuizAttempt]:
         try:
-            return list(self.model.student_quiz_index.query(student_id, QuizAttempt.quiz_id == quiz_id))
+            return list(self.model.query(student_id, QuizAttempt.quiz_id == quiz_id))
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id} and quiz {quiz_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
@@ -109,8 +109,8 @@ class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
 class CRUDStudentProgress(CRUDBase[StudentProgress]):
     def get_by_student_and_lesson(self, student_id: str, lesson_id: str) -> Optional[StudentProgress]:
         try:
-            results = list(self.model.scan((StudentProgress.student_id == student_id) & (StudentProgress.lesson_id == lesson_id)))
-            return results[0] if results else None
+            result = self.model.get(student_id,StudentProgress.lesson_id == lesson_id)
+            return result
         except Exception as e:
             logger.error(f"Error fetching student progress for student {student_id} and lesson {lesson_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")

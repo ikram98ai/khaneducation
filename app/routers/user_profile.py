@@ -37,7 +37,7 @@ def create_user(user: schemas.UserCreate):
 
     except Exception as e:
         logger.error(f"Error checking for existing user: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     if not utils.is_strong_password(user.password):
         raise HTTPException(
@@ -57,23 +57,41 @@ def create_user(user: schemas.UserCreate):
         user_data["role"] = user_data["role"].value
 
     try:
-        new_user = User(**user_data)
-        # Create a connection for the transaction
-        conn = Connection()
-        with TransactWrite(connection=conn) as transaction:
-            transaction.save(new_user)
-
+        new_user = crud.crud_user.create(user_data)
     except Exception as e:
         logger.error(f"Error creating user (transaction): {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user")
 
     return new_user
 
+@router.get("/profile/me/", response_model=schemas.StudentProfile)
+def get_me(user: schemas.User = Depends(get_current_user)):
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "role": user.role,
+        "email": user.email,
+    }
+
+    student = crud.crud_student.get_by_user_id(user.id)
+    student_dict = None
+    if student:
+        student_dict = {
+            "user_id": student.user_id,
+            "language": student.language,
+            "current_grade": student.current_grade,
+        }
+
+    return schemas.StudentProfile(user=user_dict, student_profile=student_dict)
+
+
 
 @router.post("/profile/me/", response_model=schemas.StudentProfile)
 def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(get_current_user)):
     try:
-        existing_student = crud.crud_student.get(hash_key=user.id)
+        existing_student = crud.crud_student.get_by_user_id(user.id)
         if existing_student:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student profile already exists for this user")
     except Student.DoesNotExist:
@@ -110,9 +128,6 @@ def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
 
 
-@router.get("/profile/me/", response_model=schemas.User)
-def get_me(current_user: schemas.User = Depends(get_current_user)):
-    return current_user
 
 
 @router.put("/profile/me/", response_model=schemas.User)

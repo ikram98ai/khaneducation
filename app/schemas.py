@@ -237,7 +237,7 @@ class UserBase(BaseModel):
     username: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    role: Optional[UserRoleEnum] = None
+    role: Optional[UserRoleEnum] = UserRoleEnum.STUDENT
     email: EmailStr
 
 

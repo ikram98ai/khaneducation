@@ -48,27 +48,22 @@ class QuestionTypeEnum(enum.Enum):
     ESSAY = "essay"
 
 
-# --- Custom Attribute Classes ---
-class EnrollmentAttribute(MapAttribute):
-    subject_id = UnicodeAttribute()
-    enrolled_at = UTCDateTimeAttribute()
-    status = UnicodeAttribute(default="active")  # active, completed, dropped
+# --- Base Model ---
+class BaseModel(Model):
+    class Meta:
+        region = settings.aws_region
+        # host = settings.dynamodb_endpoint_url
+        aws_access_key_id = settings.aws_access_key_id
+        aws_secret_access_key = settings.aws_secret_access_key
+        billing_mode = "PAY_PER_REQUEST"
 
+    created_at = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
+    updated_at = UTCDateTimeAttribute(default=lambda: datetime.now(timezone.utc))
 
-class QuizQuestionAttribute(MapAttribute):
-    question_id = UnicodeAttribute()
-    question_text = UnicodeAttribute()
-    question_type = UnicodeAttribute()
-    options = ListAttribute(of=UnicodeAttribute, null=True)
-    correct_answer = UnicodeAttribute(null=True)
-    points = NumberAttribute(default=1)
-
-
-class QuizResponseAttribute(MapAttribute):
-    question_id = UnicodeAttribute()
-    student_answer = UnicodeAttribute()
-    is_correct = BooleanAttribute()
-    points_earned = NumberAttribute(default=0)
+    def save(self, **kwargs):
+        """Override save to update the updated_at timestamp"""
+        self.updated_at = datetime.now(timezone.utc)
+        super().save(**kwargs)
 
 
 # --- Define Global Secondary Indexes (GSI) ---
@@ -103,6 +98,37 @@ class UserRoleIndex(GlobalSecondaryIndex):
     created_at = UTCDateTimeAttribute(range_key=True)
 
 
+# --- Main Models ---
+class User(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = "khaneducation_users"
+
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
+
+    username = UnicodeAttribute()
+    first_name = UnicodeAttribute(null=True)
+    last_name = UnicodeAttribute(null=True)
+    email = UnicodeAttribute()
+    password = UnicodeAttribute()  # Should be hashed
+    role = UnicodeAttribute(default=UserRoleEnum.STUDENT.value)
+    is_active = BooleanAttribute(default=True)
+    last_login = UTCDateTimeAttribute(null=True)
+    email_verified = BooleanAttribute(default=False)
+
+    # Define GSIs
+    email_index = UserEmailIndex()
+    username_index = UsernameIndex()
+    role_index = UserRoleIndex()
+
+    @property
+    def full_name(self) -> str:
+        """Get user's full name"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.username or self.email.split("@")[0]
+
+
+
 class SubjectGradeLevelIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "grade-level-index"
@@ -112,6 +138,23 @@ class SubjectGradeLevelIndex(GlobalSecondaryIndex):
 
     grade_level = NumberAttribute(hash_key=True)
     language = UnicodeAttribute(range_key=True)
+
+class Subject(BaseModel):
+    class Meta(BaseModel.Meta):
+        table_name = "khaneducation_subjects"
+
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
+
+    name = UnicodeAttribute()
+    description = UnicodeAttribute(null=True)
+    grade_level = NumberAttribute()
+    language = UnicodeAttribute(default=LanguageChoicesEnum.EN.value)
+    is_active = BooleanAttribute(default=True)
+    prerequisites = ListAttribute(of=UnicodeAttribute, null=True)  # List of subject IDs
+
+    # GSI for querying by grade level and language
+    grade_level_index = SubjectGradeLevelIndex()
+
 
 
 class LessonSubjectIndex(GlobalSecondaryIndex):
@@ -147,129 +190,13 @@ class LessonStatusIndex(GlobalSecondaryIndex):
     created_at = UTCDateTimeAttribute(range_key=True)
 
 
-class StudentProgressLessonIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "lesson-progress-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-
-    lesson_id = UnicodeAttribute(hash_key=True)
-    last_accessed = UTCDateTimeAttribute(range_key=True)
-
-
-class QuizAttemptStudentIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "student-attempts-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-
-    student_id = UnicodeAttribute(hash_key=True)
-    id = UTCDateTimeAttribute(range_key=True)
-
-class StudentByGradeAndLanguageIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "student-grade-language-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    current_grade = NumberAttribute(hash_key=True)
-    language = UnicodeAttribute(range_key=True)
-
-class PracticeTaskByLessonIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "practice-task-lesson-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    lesson_id = UnicodeAttribute(hash_key=True)
-
-class QuizByLessonIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "quiz-lesson-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    lesson_id = UnicodeAttribute(hash_key=True)
-
-class QuizAttemptByStudentAndQuizIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "quiz-attempt-student-quiz-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    student_id = UnicodeAttribute(hash_key=True)
-    quiz_id = UnicodeAttribute(range_key=True)
-
-
-# --- Base Model ---
-class BaseModel(Model):
-    class Meta:
-        region = settings.aws_region
-        # host = settings.dynamodb_endpoint_url
-        aws_access_key_id = settings.aws_access_key_id
-        aws_secret_access_key = settings.aws_secret_access_key
-        billing_mode = "PAY_PER_REQUEST"
-
-    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
-    created_at = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
-    updated_at = UTCDateTimeAttribute(default=lambda: datetime.now(timezone.utc))
-
-    def save(self, **kwargs):
-        """Override save to update the updated_at timestamp"""
-        self.updated_at = datetime.now(timezone.utc)
-        super().save(**kwargs)
-
-
-# --- Main Models ---
-class User(BaseModel):
-    class Meta(BaseModel.Meta):
-        table_name = "users"
-
-    username = UnicodeAttribute()
-    first_name = UnicodeAttribute(null=True)
-    last_name = UnicodeAttribute(null=True)
-    email = UnicodeAttribute()
-    password = UnicodeAttribute()  # Should be hashed
-    role = UnicodeAttribute(default=UserRoleEnum.STUDENT.value)
-    is_active = BooleanAttribute(default=True)
-    last_login = UTCDateTimeAttribute(null=True)
-    email_verified = BooleanAttribute(default=False)
-
-    # Define GSIs
-    email_index = UserEmailIndex()
-    username_index = UsernameIndex()
-    role_index = UserRoleIndex()
-
-    @property
-    def full_name(self) -> str:
-        """Get user's full name"""
-        if self.first_name and self.last_name:
-            return f"{self.first_name} {self.last_name}"
-        return self.username or self.email.split("@")[0]
-
-
-class Subject(BaseModel):
-    class Meta(BaseModel.Meta):
-        table_name = "subjects"
-
-    name = UnicodeAttribute()
-    description = UnicodeAttribute(null=True)
-    grade_level = NumberAttribute()
-    language = UnicodeAttribute(default=LanguageChoicesEnum.EN.value)
-    is_active = BooleanAttribute(default=True)
-    prerequisites = ListAttribute(of=UnicodeAttribute, null=True)  # List of subject IDs
-
-    # GSI for querying by grade level and language
-    grade_level_index = SubjectGradeLevelIndex()
-
-
 class Lesson(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "lessons"
+        table_name = "khaneducation_lessons"
 
-    subject_id = UnicodeAttribute()  # Subject ID as hash key
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
+
+    subject_id = UnicodeAttribute(range_key=True)
     instructor_id = UnicodeAttribute()
     title = UnicodeAttribute()
     content = UnicodeAttribute()
@@ -289,13 +216,40 @@ class Lesson(BaseModel):
     status_index = LessonStatusIndex()
 
 
+class StudentProgressLessonIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "lesson-progress-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+
+    lesson_id = UnicodeAttribute(hash_key=True)
+    last_accessed = UTCDateTimeAttribute(range_key=True)
+
+
+class StudentByGradeAndLanguageIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "student-grade-language-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    current_grade = NumberAttribute(hash_key=True)
+    language = UnicodeAttribute(range_key=True)
+
+
+
+class EnrollmentAttribute(MapAttribute):
+    subject_id = UnicodeAttribute()
+    enrolled_at = UTCDateTimeAttribute()
+    status = UnicodeAttribute(default="active")  # active, completed, dropped
+
 class Student(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "students"
+        table_name = "khaneducation_students"
 
-    user_id = UnicodeAttribute()  # Link to User
+    user_id = UnicodeAttribute(hash_key=True)  # Link to User
+    current_grade = NumberAttribute(range_key=True)  # Current grade level
     language = UnicodeAttribute(default=LanguageChoicesEnum.EN.value)
-    current_grade = NumberAttribute()
     date_of_birth = UTCDateTimeAttribute(null=True)
     parent_email = UnicodeAttribute(null=True)
     learning_preferences = JSONAttribute(null=True)  # Store learning style preferences
@@ -332,11 +286,21 @@ class Student(BaseModel):
         return [e for e in self.enrollments if e.status == "active"]
 
 
+class PracticeTaskByLessonIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "practice-task-lesson-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    lesson_id = UnicodeAttribute(hash_key=True)
+
 class PracticeTask(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "practice_tasks"
+        table_name = "khaneducation_practice_tasks"
 
-    lesson_id = UnicodeAttribute()
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
+
+    lesson_id = UnicodeAttribute(range_key=True)
     title = UnicodeAttribute()
     content = UnicodeAttribute()
     instructions = UnicodeAttribute(null=True)
@@ -348,9 +312,29 @@ class PracticeTask(BaseModel):
     lesson_index = PracticeTaskByLessonIndex()
 
 
+class QuizByLessonIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-lesson-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    lesson_id = UnicodeAttribute(hash_key=True)
+
+
+
+class QuizQuestionAttribute(MapAttribute):
+    question_id = UnicodeAttribute()
+    question_text = UnicodeAttribute()
+    question_type = UnicodeAttribute()
+    options = ListAttribute(of=UnicodeAttribute, null=True)
+    correct_answer = UnicodeAttribute(null=True)
+    points = NumberAttribute(default=1)
+
 class Quiz(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "quizzes"
+        table_name = "khaneducation_quizzes"
+
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
     lesson_id = UnicodeAttribute()
     title = UnicodeAttribute()
@@ -388,12 +372,19 @@ class Quiz(BaseModel):
         return sum(q.points for q in self.quiz_questions)
 
 
+class QuizResponseAttribute(MapAttribute):
+    question_id = UnicodeAttribute()
+    student_answer = UnicodeAttribute()
+    is_correct = BooleanAttribute()
+    points_earned = NumberAttribute(default=0)
+    
 class QuizAttempt(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "quiz_attempts"
+        table_name = "khaneducation_quiz_attempts"
 
-    student_id = UnicodeAttribute()
-    quiz_id = UnicodeAttribute()
+
+    student_id = UnicodeAttribute(hash_key=True)
+    quiz_id = UnicodeAttribute(range_key=True)
     attempt_number = NumberAttribute()  # Track attempt count
     start_time = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
     end_time = UTCDateTimeAttribute(null=True)
@@ -405,10 +396,6 @@ class QuizAttempt(BaseModel):
 
     # Use proper list attribute for responses
     responses = ListAttribute(of=QuizResponseAttribute, null=True)
-
-    # GSI for querying student attempts
-    student_index = QuizAttemptStudentIndex()
-    student_quiz_index = QuizAttemptByStudentAndQuizIndex()
 
     def add_response(self, question_id: str, student_answer: str, is_correct: bool, points_earned: int = 0):
         """Add a response to the quiz attempt"""
@@ -453,10 +440,10 @@ class QuizAttempt(BaseModel):
 
 class StudentProgress(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "student_progress"
-
-    student_id = UnicodeAttribute()
-    lesson_id = UnicodeAttribute()
+        table_name = "khaneducation_student_progress"
+    
+    student_id = UnicodeAttribute(hash_key=True)  # Link to Student
+    lesson_id = UnicodeAttribute(range_key=True)
     completion_status = UnicodeAttribute(default="not_started")  # not_started, in_progress, completed
     proficiency_level = NumberAttribute(default=0)  # 0-100 scale
     knowledge_gaps = JSONAttribute(null=True)  # Structured data for learning analytics
@@ -488,7 +475,9 @@ class StudentProgress(BaseModel):
 
 class Notification(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "notifications"
+        table_name = "khaneducation_notifications"
+
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
     user_id = UnicodeAttribute()
     title = UnicodeAttribute()
@@ -501,7 +490,9 @@ class Notification(BaseModel):
 
 class LessonRating(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "lesson_ratings"
+        table_name = "khaneducation_lesson_ratings"
+
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
     lesson_id = UnicodeAttribute()
     student_id = UnicodeAttribute()
@@ -512,7 +503,9 @@ class LessonRating(BaseModel):
 
 class StudySession(BaseModel):
     class Meta(BaseModel.Meta):
-        table_name = "study_sessions"
+        table_name = "khaneducation_study_sessions"
+
+    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
     student_id = UnicodeAttribute()
     lesson_id = UnicodeAttribute(null=True)

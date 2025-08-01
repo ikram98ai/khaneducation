@@ -5,5 +5,5 @@ from . import (
     quiz as quiz,
     dashboard as dashboard,
     admin as admin,
-    user as user,
+    user_profile as user_profile,
 )

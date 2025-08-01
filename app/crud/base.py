@@ -19,7 +19,12 @@ class CRUDBase(Generic[ModelType]):
     def get(self, hash_key: Any, range_key: Any = None) -> Optional[ModelType]:
         """Fetch an item by its primary key."""
         try:
-            if range_key is not None:
+            # Check if the model has a range key attribute
+            range_key_attr = getattr(self.model.Meta, 'range_key_attribute', None)
+            if range_key_attr is not None:
+                if range_key is None:
+                    logger.error(f"Range key is required for {self.model.Meta.table_name} but not provided.")
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Range key required but not provided")
                 return self.model.get(hash_key, range_key)
             else:
                 return self.model.get(hash_key)
