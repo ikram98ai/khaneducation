@@ -11,7 +11,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 def get_student_practice_tasks(student_id: str):
     try:
-        student = models.Student.get(student_id)
+        student = crud.crud_student.get_by_user_id(student_id)
         enrolled_subject_ids = [e.subject_id for e in student.get_active_enrollments()]
         if not enrolled_subject_ids:
             return []

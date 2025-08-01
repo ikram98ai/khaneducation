@@ -183,9 +183,9 @@ class QuizSubmissionResponse(BaseModel):
 
 
 class DashboardStats(BaseModel):
-    completedLessons: int
-    totalLessons: int
-    avgScore: float
+    completed_lessons: int
+    total_lessons: int
+    avg_score: float
     streak: int
 
 

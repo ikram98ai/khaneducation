@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from .models import User, Student, UserRoleEnum
 from .config import settings
 from .schemas import User as UserSchema, TokenData, Student as StudentSchema
+from . import crud
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -72,7 +73,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserSchema:
 
 
 async def get_current_student(user: UserSchema = Depends(get_current_user)) -> StudentSchema:
-    print("Checking current student...", user.role, UserRoleEnum.STUDENT, str(user.role) == str(UserRoleEnum.STUDENT))
+
     if str(user.role) != str(UserRoleEnum.STUDENT):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -80,7 +81,7 @@ async def get_current_student(user: UserSchema = Depends(get_current_user)) -> S
         )
 
     # Verify student profile exists in PynamoDB
-    student = Student.get(user.id)
+    student = crud.crud_student.get_by_user_id(user.id)
 
     if not student:
         raise HTTPException(
@@ -92,7 +93,7 @@ async def get_current_student(user: UserSchema = Depends(get_current_user)) -> S
 
 
 async def get_current_admin(current_user: UserSchema = Depends(get_current_user)) -> UserSchema:
-    if current_user.role not in [UserRoleEnum.ADMIN, UserRoleEnum.STAFF]:
+    if str(current_user.role) not in [str(UserRoleEnum.ADMIN), str(UserRoleEnum.STAFF)]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required",
@@ -101,7 +102,7 @@ async def get_current_admin(current_user: UserSchema = Depends(get_current_user)
 
 
 async def get_content_admin(current_user: UserSchema = Depends(get_current_user)) -> UserSchema:
-    if current_user.role not in [UserRoleEnum.ADMIN, UserRoleEnum.CONTENT_MANAGER]:
+    if str(current_user.role) not in [str(UserRoleEnum.ADMIN), str(UserRoleEnum.CONTENT_MANAGER)]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Content management privileges required",

@@ -6,7 +6,7 @@ from .models import Lesson, PracticeTask, Quiz, Subject, QuizAttempt, Student
 from pynamodb.transactions import TransactWrite
 from datetime import datetime, timezone  # Use timezone-aware datetime for DynamoDB
 import uuid  # If using UUIDs or need unique IDs
-
+from . import crud
 
 def create_lesson_with_content(subject_id: int, instructor_id: int, title: str) -> Lesson:  # Return PynamoDB model
     try:
@@ -196,74 +196,61 @@ def submit_quiz_responses(quiz_id: int, student_id: int, responses: List[schemas
         raise  # Re-raise or custom exception
 
 
-# --- get_student_dashboard_stats needs significant rewrite ---
-# Calculating counts, averages, and complex queries like streaks are much harder in DynamoDB
-# without careful design of access patterns and potentially GSIs/LSIs.
-# This is a simplified example highlighting the challenges.
 
-# Example: Requires GSI on QuizAttempt by student_id, date, passed
-# Example: Requires GSI on Lesson by subject_id
-# Example: Requires GSI on QuizAttempt by student_id for average score
-# Example: Requires complex logic for streaks (might need to store/retrieve last attempt dates)
-
-
-# Placeholder/Demonstration (Not efficient, needs DynamoDB design):
 def get_student_dashboard_stats(student_id: int) -> schemas.DashboardStats:
-    # --- Completed Lessons (Very Complex in DynamoDB) ---
-    # Need: Lessons where student passed a quiz for that lesson.
-    # Requires: Joining data or pre-calculating.
-    # Approach 1: Query QuizAttempt by student_id where passed=True.
-    #            For each attempt, get quiz_id, then get lesson_id.
-    #            Get distinct lesson_ids.
-    #            Count them.
-    #            This requires multiple round trips or a GSI on QuizAttempt.quiz_id
-    #            and potentially storing lesson_id in QuizAttempt for easier lookup.
-    #            Or denormalizing lesson info into QuizAttempt.
-    completed_lessons = 0  # Placeholder
+    # --- Completed Lessons ---
+    passed_attempts = list(QuizAttempt.scan((QuizAttempt.student_id == student_id) & (QuizAttempt.passed == True)))
+    completed_lesson_ids = set()
+    for attempt in passed_attempts:
+        try:
+            quiz = Quiz.get(attempt.quiz_id)
+            completed_lesson_ids.add(quiz.lesson_id)
+        except Quiz.DoesNotExist:
+            continue
+    completed_lessons = len(completed_lesson_ids)
 
-    # --- Total Lessons (Complex) ---
-    # Need: Total lessons in subjects the student is enrolled in.
-    # Requires: Get student's enrollments (need Enrollment model and GSI?).
-    #           For each enrollment, get subject_id.
-    #           Count lessons for each subject_id (need GSI on Lesson.subject_id).
-    total_lessons = 0  # Placeholder
+    # --- Total Lessons ---
+    try:
+        student = crud.crud_student.get_by_user_id(student_id)
+        enrolled_subject_ids = [e.subject_id for e in student.get_active_enrollments()]
+        total_lessons = 0
+        for subject_id in enrolled_subject_ids:
+            total_lessons += Lesson.subject_index.count(subject_id)
+    except Student.DoesNotExist:
+        enrolled_subject_ids = []
+        total_lessons = 0
 
-    # --- Average Score (Moderate with GSI) ---
-    # Need: Average of QuizAttempt.score for a student.
-    # Requires: GSI on QuizAttempt with student_id as hash key.
-    #           Query all attempts for student, sum scores, count, calculate average.
-    avg_score = 0.0  # Placeholder
+    # --- Average Score ---
+    all_attempts = list(QuizAttempt.scan(QuizAttempt.student_id == student_id))
+    if not all_attempts:
+        avg_score = 0.0
+    else:
+        total_score = sum(attempt.percentage_score for attempt in all_attempts if attempt.percentage_score is not None)
+        avg_score = total_score / len(all_attempts) if all_attempts else 0.0
 
-    # --- Streak (Very Complex) ---
-    # Need: Consecutive days student passed a quiz.
-    # Requires: GSI on QuizAttempt with student_id as hash key and date as sort key (or composite).
-    #           Query attempts for student, ordered by date/time.
-    #           Check if end_time dates are consecutive and passed=True.
-    #           This is a non-trivial query pattern in DynamoDB.
-    streak = 0  # Placeholder
+    # --- Streak ---
+    passed_attempts.sort(key=lambda x: x.end_time, reverse=True)
+    if not passed_attempts:
+        streak = 0
+    else:
+        streak = 0
+        if passed_attempts:
+            dates = sorted(list(set(attempt.end_time.date() for attempt in passed_attempts)))
+            if dates:
+                longest_streak = 0
+                current_streak = 1
+                for i in range(1, len(dates)):
+                    if (dates[i] - dates[i-1]).days == 1:
+                        current_streak += 1
+                    else:
+                        longest_streak = max(longest_streak, current_streak)
+                        current_streak = 1
+                longest_streak = max(longest_streak, current_streak)
+                streak = longest_streak
 
-    # --- Actual Implementation (Requires careful DynamoDB design) ---
-    # This is a significant part of the migration challenge.
-    # You'll need to design your tables and indexes to support these queries efficiently.
-    # Consider:
-    # 1. Denormalizing data (e.g., storing lesson_id in QuizAttempt).
-    # 2. Creating GSIs for common query patterns (student_id, subject_id, date).
-    # 3. Using DynamoDB Streams and Lambda to maintain aggregate data (e.g., user stats).
-    # 4. Accepting that some queries might be slower or require multiple requests.
-
-    # Example placeholder logic (NOT EFFICIENT, for illustration):
-    # from .models_pynamodb import Enrollment, QuizAttempt
-    # completed_lessons_set = set()
-    # try:
-    #     # Get enrollments for student (need GSI or appropriate key structure)
-    #     # enrollments = list(Enrollment.query(...)) # Adapt based on key design
-    #     # subject_ids = [e.subject_id for e in enrollments]
-    #     # Get passed quiz attempts for student
-    #     passed_attempts = list(QuizAttempt.student_id_index.query(student_id, filter_condition=QuizAttempt.passed == True)) # Hypothetical GSI
-    #     for attempt in passed_attempts:
-    #         try:
-    #             quiz = Quiz.get(attempt.quiz_id)
-    #             completed_lessons_set.add(quiz.lesson_id) # Need lesson_id in Quiz or attempt
-    #         except Quiz.DoesNotExist:
-    #             pass
-    #     completed_lessons = len
+    return schemas.DashboardStats(
+        completed_lessons=completed_lessons,
+        total_lessons=total_lessons,
+        avg_score=avg_score,
+        streak=streak,
+    )
