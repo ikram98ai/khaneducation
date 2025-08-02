@@ -64,15 +64,15 @@ class LessonBase(BaseModel):
 
 
 class LessonCreate(LessonBase):
-    subject_id: Optional[int] = None
-    instructor_id: Optional[int] = None
+    subject_id: Optional[str] = None
+    instructor_id: Optional[str] = None
     status: Optional[LessonStatusEnum] = None
 
 
 class Lesson(LessonBase):
     id: str
     instructor_id: str
-    subject_id: Optional[int] = None
+    subject_id: Optional[str] = None
     status: LessonStatusEnum
     created_at: datetime
     verified_at: Optional[datetime] = None
@@ -192,7 +192,7 @@ class DashboardStats(BaseModel):
 class AIContentRequest(BaseModel):
     query_text: str
     subject_id: str
-    lesson_id: Optional[int] = None
+    lesson_id: Optional[str] = None
 
 
 class StudentResponseBase(BaseModel):
@@ -274,7 +274,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[UserRoleEnum] = None

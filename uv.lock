@@ -38,13 +38,13 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pynamodb" },
     { name = "python-jose" },
-    { name = "typer" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "fastapi", extra = ["standard"] },
     { name = "ruff" },
+    { name = "typer" },
 ]
 
 [package.metadata]
@@ -58,13 +58,13 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "pynamodb", specifier = ">=5.5.0" },
     { name = "python-jose", specifier = ">=3.5.0" },
-    { name = "typer", specifier = ">=0.16.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "ruff", specifier = ">=0.12.3" },
+    { name = "typer", specifier = ">=0.16.0" },
 ]
 
 [[package]]

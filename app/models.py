@@ -384,7 +384,8 @@ class QuizAttempt(BaseModel):
 
 
     student_id = UnicodeAttribute(hash_key=True)
-    quiz_id = UnicodeAttribute(range_key=True)
+    id = UnicodeAttribute(range_key=True, default_for_new=lambda: str(uuid.uuid4()))
+    quiz_id = UnicodeAttribute()
     attempt_number = NumberAttribute()  # Track attempt count
     start_time = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
     end_time = UTCDateTimeAttribute(null=True)
