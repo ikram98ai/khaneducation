@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
-
 @router.get("/{lesson_id}/", response_model=schemas.Lesson)
 def get_lesson(lesson_id: str):
     try:
@@ -21,6 +20,7 @@ def get_lesson(lesson_id: str):
     except Exception as e:
         logger.error(f"Error fetching lesson {lesson_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+
 
 
 @router.get("/{lesson_id}/tasks/", response_model=List[schemas.PracticeTask])

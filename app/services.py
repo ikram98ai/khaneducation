@@ -39,11 +39,11 @@ def create_lesson_with_content(subject_id: str, grade_level:int, language_value:
 
         new_task_id = str(uuid.uuid4())
         practice_task = PracticeTask(
-            id=new_task_id, lesson_id=new_lesson_id, title=title, content=task_content, difficulty="ME", ai_generated=True, created_at=datetime.now(timezone.utc)
+            id=new_task_id, lesson_id=new_lesson_id, lesson_title=title, content=task_content, difficulty="ME", ai_generated=True, created_at=datetime.now(timezone.utc)
         )
 
         new_quiz_id = str(uuid.uuid4())
-        db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, title=title, version_number=1, ai_generated=True, created_at=datetime.now(timezone.utc))
+        db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, lesson_title=title, version_number=1, ai_generated=True, created_at=datetime.now(timezone.utc))
 
         # All models involved must be in the same region/account and use the same DynamoDB client.
         conn = Connection(region='us-east-1')  # Adjust region as needed

@@ -196,7 +196,7 @@ class Lesson(BaseModel):
 
     id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
-    subject_id = UnicodeAttribute(range_key=True)
+    subject_id = UnicodeAttribute()
     instructor_id = UnicodeAttribute()
     title = UnicodeAttribute()
     content = UnicodeAttribute()
@@ -301,7 +301,7 @@ class PracticeTask(BaseModel):
     id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
     lesson_id = UnicodeAttribute(range_key=True)
-    title = UnicodeAttribute()
+    lesson_title = UnicodeAttribute()
     content = UnicodeAttribute()
     instructions = UnicodeAttribute(null=True)
     difficulty = UnicodeAttribute(default=DifficultyLevelEnum.MEDIUM.value)
@@ -337,7 +337,7 @@ class Quiz(BaseModel):
     id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
 
     lesson_id = UnicodeAttribute()
-    title = UnicodeAttribute()
+    lesson_title = UnicodeAttribute()
     description = UnicodeAttribute(null=True)
     version_number = NumberAttribute(default=1)
     time_limit_minutes = NumberAttribute(null=True)
@@ -378,6 +378,17 @@ class QuizResponseAttribute(MapAttribute):
     is_correct = BooleanAttribute()
     points_earned = NumberAttribute(default=0)
     
+    # Local Secondary Index (LSI) for quiz_id
+class QuizIdLSI(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-id-lsi"
+        projection = AllProjection()
+        read_capacity_units = 1
+        write_capacity_units = 1
+
+    student_id = UnicodeAttribute(hash_key=True)
+    quiz_id = UnicodeAttribute(range_key=True)
+
 class QuizAttempt(BaseModel):
     class Meta(BaseModel.Meta):
         table_name = "khaneducation_quiz_attempts"
@@ -397,6 +408,7 @@ class QuizAttempt(BaseModel):
 
     # Use proper list attribute for responses
     responses = ListAttribute(of=QuizResponseAttribute, null=True)
+    quiz_id_lsi = QuizIdLSI()
 
     def add_response(self, question_id: str, student_answer: str, is_correct: bool, points_earned: int = 0):
         """Add a response to the quiz attempt"""

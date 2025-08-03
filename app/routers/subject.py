@@ -53,7 +53,7 @@ def read_subject(subject_id: str, current_student: models.Student = Depends(get_
     )
 
 
-@router.get("/{subject_id}/details", response_model=schemas.SubjectDetail)
+@router.get("/{subject_id}/details/", response_model=schemas.SubjectDetail)
 def read_subject_details(subject_id: str, current_student: models.Student = Depends(get_current_student)):
     subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
@@ -88,3 +88,6 @@ def read_subject_details(subject_id: str, current_student: models.Student = Depe
         progress=(completed_lessons_count / total_lessons) * 100 if total_lessons > 0 else 0,
         lessons=lessons_with_progress,
     )
+
+
+
