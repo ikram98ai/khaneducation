@@ -88,7 +88,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
             raise ValueError("Quiz not found")
 
         # Create quiz attempt
-        previous_attempts = list(QuizAttempt.query(student_id, QuizAttempt.quiz_id == quiz_id))
+        previous_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id, QuizAttempt.quiz_id == quiz_id)
         attempt_number = len(previous_attempts) + 1
 
         if quiz.max_attempts and attempt_number > quiz.max_attempts:
@@ -114,7 +114,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
         # Process responses
         for response in responses:
             question_id = response.question_id
-            answer = response.answer
+            answer = response.student_answer
             # Fetch question
             question = next((q for q in quiz.quiz_questions if q.question_id == question_id), None)
             
@@ -155,7 +155,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
                         )
                         # Create new quiz
                         new_quiz_id_2 = str(uuid.uuid4())
-                        new_quiz = Quiz(id=new_quiz_id_2, lesson_id=lesson.id, version_number=new_version, ai_generated=True, created_at=datetime.now(timezone.utc))
+                        new_quiz = Quiz(id=new_quiz_id_2, lesson_id=lesson.id, lesson_title= lesson.title,version_number=new_version, ai_generated=True, created_at=datetime.now(timezone.utc))
                         
                         # Create new questions
                         for question_data in new_quiz_data["questions"]:

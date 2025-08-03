@@ -12,7 +12,7 @@ router = APIRouter(prefix="/subjects", tags=["subjects"])
 
 
 @router.get("/", response_model=List[schemas.Subject])
-def read_subjects(limit: int = 100):
+def get_subjects(limit: int = 100):
     try:
         subjects = crud.crud_subject.get_multi(limit=limit)
         if not subjects:
@@ -24,7 +24,7 @@ def read_subjects(limit: int = 100):
 
 
 @router.get("/{subject_id}/", response_model=schemas.SubjectDetail)
-def read_subject(subject_id: str, current_student: models.Student = Depends(get_current_student)):
+def get_subject(subject_id: str, current_student: models.Student = Depends(get_current_student)):
     subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
@@ -54,7 +54,7 @@ def read_subject(subject_id: str, current_student: models.Student = Depends(get_
 
 
 @router.get("/{subject_id}/details/", response_model=schemas.SubjectDetail)
-def read_subject_details(subject_id: str, current_student: models.Student = Depends(get_current_student)):
+def get_subject_details(subject_id: str, current_student: models.Student = Depends(get_current_student)):
     subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")

@@ -120,33 +120,24 @@ class PracticeTask(PracticeTaskBase):
         from_attributes = True
 
 
-class QuizQuestionBase(BaseModel):
-    quiz_id: str
-    question_text: str
-    option_a: str
-    option_b: str
-    option_c: str
-    option_d: str
-
-
-class QuizQuestion(QuizQuestionBase):
-    id: str
-
-    class Config:
-        from_attributes = True
-
-
 class QuizBase(BaseModel):
     lesson_id: str
-    version: int = 1
+    version_number: int = 1
 
+class QuizQuestion(BaseModel):
+    question_id: str
+    question_text: str
+    question_type: str
+    options: List[str] = []
+    correct_answer:Optional[str] = None
+    points: Optional[float] = 1.0
 
 class Quiz(QuizBase):
     id: str
     ai_generated: bool
     created_at: datetime
     lesson_title: Optional[str] = None
-    questions: List[QuizQuestion] = []
+    quiz_questions: List[QuizQuestion] = []
 
     class Config:
         from_attributes = True
@@ -157,6 +148,12 @@ class QuizAttemptBase(BaseModel):
     student_id: str
 
 
+class QuizResponse(BaseModel):
+    question_id: str
+    student_answer: str
+    is_correct: Optional[bool] = None
+    points_earned: Optional[float] = 0
+    
 class QuizAttempt(QuizAttemptBase):
     id: str
     lesson_title: str
@@ -166,14 +163,10 @@ class QuizAttempt(QuizAttemptBase):
     passed: bool
     quiz_version: int
     cheating_detected: bool
-
+    responses: List[QuizResponse] = []
     class Config:
         from_attributes = True
 
-
-class QuizResponse(BaseModel):
-    question_id: str
-    answer: str
 
 
 class QuizSubmissionResponse(BaseModel):
