@@ -389,6 +389,15 @@ class QuizIdLSI(GlobalSecondaryIndex):
     student_id = UnicodeAttribute(hash_key=True)
     quiz_id = UnicodeAttribute(range_key=True)
 
+class QuizAttemptByStudentIdGSI(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "student_id-index"
+        projection = AllProjection()
+        read_capacity_units = 1
+        write_capacity_units = 1
+
+    student_id = UnicodeAttribute(hash_key=True)
+
 class QuizAttempt(BaseModel):
     class Meta(BaseModel.Meta):
         table_name = "khaneducation_quiz_attempts"
@@ -409,7 +418,8 @@ class QuizAttempt(BaseModel):
     # Use proper list attribute for responses
     responses = ListAttribute(of=QuizResponseAttribute, null=True)
     quiz_id_lsi = QuizIdLSI()
-
+    student_index = QuizAttemptByStudentIdGSI()
+    
     def add_response(self, question_id: str, student_answer: str, is_correct: bool, points_earned: int = 0):
         """Add a response to the quiz attempt"""
         if not self.responses:

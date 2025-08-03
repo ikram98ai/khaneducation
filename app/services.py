@@ -88,7 +88,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
             raise ValueError("Quiz not found")
 
         # Create quiz attempt
-        previous_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id, QuizAttempt.quiz_id == quiz_id)
+        previous_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id, quiz_id)
         attempt_number = len(previous_attempts) + 1
 
         if quiz.max_attempts and attempt_number > quiz.max_attempts:
@@ -192,10 +192,34 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
             lesson_title=lesson.title if lesson else ""
         )
 
+        regenerated_quiz_schema = None
+        if regenerated_quiz:
+            # Convert PynamoDB quiz_questions to Pydantic models
+            quiz_questions_schema = [
+                schemas.QuizQuestion(
+                    question_id=q.question_id,
+                    question_text=q.question_text,
+                    question_type=q.question_type,
+                    options=q.options,
+                    correct_answer=q.correct_answer,
+                    points=q.points,
+                )
+                for q in regenerated_quiz.quiz_questions
+            ]
+
+            regenerated_quiz_schema = schemas.Quiz(
+                id=regenerated_quiz.id,
+                lesson_id=regenerated_quiz.lesson_id,
+                version_number=regenerated_quiz.version_number,
+                ai_generated=regenerated_quiz.ai_generated,
+                created_at=regenerated_quiz.created_at,
+                lesson_title=regenerated_quiz.lesson_title,
+                quiz_questions=quiz_questions_schema,
+            )
         return schemas.QuizSubmissionResponse(
             attempt=attempt_schema_data,
             ai_feedback=ai_feedback,
-            regenerated_quiz=regenerated_quiz,
+            regenerated_quiz=regenerated_quiz_schema,
         )
 
     except Exception as e:

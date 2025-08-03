@@ -92,16 +92,36 @@ class CRUDQuiz(CRUDBase[Quiz]):
             raise HTTPException(status_code=500, detail="Database error")
 
 class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
+    def attempts_with_quiz_version_and_lesson_title(self, attempts: List[QuizAttempt]) -> List[QuizAttempt]:
+        for attempt in attempts:
+            try:
+                quiz = Quiz.get(attempt.quiz_id)
+                attempt.quiz_version = quiz.version_number
+                
+                lesson = Lesson.get(quiz.lesson_id)
+                attempt.lesson_title = lesson.title
+            except Quiz.DoesNotExist:
+                logger.warning(f"Quiz with id {attempt.quiz_id} not found for attempt {attempt.id}")
+                attempt.quiz_version = 0  # Or some default value
+                attempt.lesson_title = "Unknown Lesson"
+            except Lesson.DoesNotExist:
+                logger.warning(f"Lesson not found for quiz {attempt.quiz_id}")
+                attempt.lesson_title = "Unknown Lesson"
+
+        return attempts
+    
     def get_by_student(self, student_id: str) -> List[QuizAttempt]:
         try:
-            return list(self.model.query(student_id))
+            attempts = list(self.model.student_index.query(student_id))
+            return self.attempts_with_quiz_version_and_lesson_title(attempts)
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
     def get_by_student_and_quiz(self, student_id: str, quiz_id: str) -> List[QuizAttempt]:
         try:
-            return list(self.model.quiz_id_lsi.query(student_id, quiz_id))
+            attempts = list(self.model.quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id))
+            return self.attempts_with_quiz_version_and_lesson_title(attempts)
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id} and quiz {quiz_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
