@@ -7,6 +7,10 @@
 /coverage
 
 
+dist
+.terraform
+.terraform*
+terraform.tfstate*
 
 # production
 /build
