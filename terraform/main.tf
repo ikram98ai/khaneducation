@@ -73,7 +73,7 @@ resource "aws_iam_role" "lambda_role" {
   tags = var.tags
 }
 
-# IAM Policy for Lambda 
+# IAM Policy for Lambda
 resource "aws_iam_role_policy" "lambda_policy" {
   name = "${var.function_name}-lambda-policy"
   role = aws_iam_role.lambda_role.id
@@ -96,6 +96,19 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "ecr:BatchGetImage"
         ]
         Resource = aws_ecr_repository.khaneducation_repo.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:BatchWriteItem"
+        ]
+        Resource = "arn:aws:dynamodb:*:*:table/*"
       }
     ]
   })
