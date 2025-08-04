@@ -10,8 +10,9 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
-    "deploy": "cd terraform && terraform apply -auto-approve",
-    "setup-s3": "BUCKET=$(cd terraform && terraform output -raw s3-bucket) && CLOUDFRONT_ID=$(cd terraform && terraform output -raw cloudfront-id) && aws s3 sync dist/ s3://$BUCKET --delete && aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths '/*'"
+    "terraform": "cd terraform && terraform apply -auto-approve",
+    "upload-to-s3": "BUCKET=$(cd terraform && terraform output -raw s3_bucket_name) && aws s3 sync dist/ s3://$BUCKET --delete",
+    "deploy": "npm run build && npm run terraform && npm run upload-to-s3"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
