@@ -41,7 +41,7 @@ export const Dashboard = () => {
   const { enrollments: enrolledSubjects, recent_attempts: recentAttempts } =
     dashboardData;
 
-  const { completedLessons, totalLessons, avgScore, streak } = statistics;
+  const { completed_lessons, total_lessons, avg_score, streak } = statistics;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5">
@@ -67,13 +67,13 @@ export const Dashboard = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Progress</p>
                   <p className="text-2xl font-bold">
-                    {Math.round((completedLessons / totalLessons) * 100) || 0}%
+                    {Math.round((completed_lessons / total_lessons) * 100) || 0}%
                   </p>
                 </div>
                 <div className="text-2xl animate-float">📈</div>
               </div>
               <Progress
-                value={completedLessons / totalLessons || 0 * 100}
+                value={completed_lessons / total_lessons || 0 * 100}
                 className="mt-2"
               />
             </CardContent>
@@ -88,7 +88,7 @@ export const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Score</p>
-                  <p className="text-2xl font-bold text-success">{avgScore}%</p>
+                  <p className="text-2xl font-bold text-success">{avg_score}%</p>
                 </div>
                 <div
                   className="text-2xl animate-float"
@@ -110,7 +110,7 @@ export const Dashboard = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Lessons</p>
                   <p className="text-2xl font-bold">
-                    {completedLessons}/{totalLessons}
+                    {completed_lessons}/{total_lessons}
                   </p>
                 </div>
                 <div

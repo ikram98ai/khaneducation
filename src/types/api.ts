@@ -135,8 +135,8 @@ export interface AIAssistResponse {
 }
 
 export interface StudentDashboardStats {
-  completedLessons: number;
-  totalLessons: number;
-  avgScore: number;
+  completed_lessons: number;
+  total_lessons: number;
+  avg_score: number;
   streak: number;
 }
