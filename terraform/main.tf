@@ -99,17 +99,6 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "ecr:BatchGetImage"
         ]
         Resource = aws_ecr_repository.khaneducation_repo.arn
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "ec2:CreateNetworkInterface",
-          "ec2:DescribeNetworkInterfaces",
-          "ec2:DeleteNetworkInterface",
-          "ec2:AttachNetworkInterface",
-          "ec2:DetachNetworkInterface"
-        ]
-        Resource = "*"
       }
     ]
   })
