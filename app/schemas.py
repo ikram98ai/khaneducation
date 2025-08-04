@@ -156,12 +156,12 @@ class QuizResponse(BaseModel):
     
 class QuizAttempt(QuizAttemptBase):
     id: str
-    lesson_title: str
+    lesson_title: Optional[str] = None
     start_time: datetime
     end_time: Optional[datetime] = None
     score: Optional[float] = None
     passed: bool
-    quiz_version: int
+    quiz_version: Optional[int] = None
     cheating_detected: bool
     responses: List[QuizResponse] = []
     class Config:

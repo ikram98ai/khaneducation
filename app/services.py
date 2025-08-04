@@ -144,9 +144,9 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
                 if lesson:
                     student = crud.crud_student.get_by_user_id(student_id) 
                     if student:
-                        quizzes_for_lesson = list(Quiz.query(lesson.subject_id, filter_condition=Quiz.lesson_id == lesson.id))
-                        max_version = max((q.version_number for q in quizzes_for_lesson if q.lesson_id == lesson.id), default=0)
-
+                        quizzes_for_lesson = list(Quiz.lesson_index.query(lesson.id))
+                        max_version = max((q.version_number for q in quizzes_for_lesson))
+                        print("Max version found:", max_version)
                         new_version = max_version + 1
                         new_quiz_data = ai.generate_quiz(
                             lesson_content=lesson.content,
