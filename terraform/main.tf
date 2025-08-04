@@ -16,9 +16,7 @@ provider "aws" {
 # Data sources
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
-data "aws_availability_zones" "available" {
-  state = "available"
-}
+
 
 # ECR Repository
 resource "aws_ecr_repository" "khaneducation_repo" {
