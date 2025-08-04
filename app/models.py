@@ -53,8 +53,8 @@ class BaseModel(Model):
     class Meta:
         region = settings.aws_region
         # host = settings.dynamodb_endpoint_url
-        aws_access_key_id = settings.aws_access_key_id
-        aws_secret_access_key = settings.aws_secret_access_key
+        # aws_access_key_id = settings.aws_access_key_id
+        # aws_secret_access_key = settings.aws_secret_access_key
         billing_mode = "PAY_PER_REQUEST"
 
     created_at = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
