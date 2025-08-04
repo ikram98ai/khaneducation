@@ -17,24 +17,26 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# Get the existing Route 53 hosted zone (created by frontend setup)
+data "aws_route53_zone" "main" {
+  name         = var.domain_name
+  private_zone = false
+}
 
 # ECR Repository
 resource "aws_ecr_repository" "khaneducation_repo" {
   name                 = var.ecr_repository_name
   image_tag_mutability = "MUTABLE"
   force_delete         = true
-
   image_scanning_configuration {
     scan_on_push = true
   }
-
   tags = var.tags
 }
 
 # ECR Repository Policy
 resource "aws_ecr_repository_policy" "khaneducation_repo_policy" {
   repository = aws_ecr_repository.khaneducation_repo.name
-
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -56,7 +58,6 @@ resource "aws_ecr_repository_policy" "khaneducation_repo_policy" {
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
   name = "${var.function_name}-lambda-role"
-
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -69,7 +70,6 @@ resource "aws_iam_role" "lambda_role" {
       }
     ]
   })
-
   tags = var.tags
 }
 
@@ -77,7 +77,6 @@ resource "aws_iam_role" "lambda_role" {
 resource "aws_iam_role_policy" "lambda_policy" {
   name = "${var.function_name}-lambda-policy"
   role = aws_iam_role.lambda_role.id
-
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -102,8 +101,6 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-
-
 # 🔧 Build & Push Docker Image
 resource "null_resource" "build_and_push_image" {
   provisioner "local-exec" {
@@ -115,11 +112,9 @@ resource "null_resource" "build_and_push_image" {
       docker push ${aws_ecr_repository.khaneducation_repo.repository_url}:${var.image_tag}
     EOT
   }
-
   triggers = {
     image_tag = var.image_tag
   }
-
   depends_on = [aws_ecr_repository.khaneducation_repo]
 }
 
@@ -131,26 +126,21 @@ resource "aws_lambda_function" "khaneducation_lambda" {
   timeout      = 30
   memory_size  = 512
   architectures = ["x86_64"]
-
-
   environment {
     variables = {
       GEMINI_API_KEY = var.gemini_api_key
-  
       DEBUG          = "False"
       SECRET_KEY     = var.secret_key
       ALGORITHM      = "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES = "30"
     }
   }
-
   depends_on = [
     aws_iam_role_policy.lambda_policy,
     aws_cloudwatch_log_group.khaneducation_lambda_logs,
     null_resource.build_and_push_image,
     aws_ecr_repository_policy.khaneducation_repo_policy,
   ]
-
   tags = var.tags
 }
 
@@ -161,6 +151,52 @@ resource "aws_cloudwatch_log_group" "khaneducation_lambda_logs" {
   tags              = var.tags
 }
 
+############################################################# SSL CERTIFICATE FOR API #############################################################
+
+# ACM Certificate for API subdomain (must be in us-east-1 for API Gateway)
+resource "aws_acm_certificate" "api_certificate" {
+  provider          = aws.us-east-1
+  domain_name       = "api.${var.domain_name}"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = merge(var.tags, {
+    Name = "api.${var.domain_name}"
+  })
+}
+
+# Route 53 record for API certificate validation
+resource "aws_route53_record" "api_cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.api_certificate.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.main.zone_id
+}
+
+# ACM certificate validation for API
+resource "aws_acm_certificate_validation" "api_certificate" {
+  provider                = aws.us-east-1
+  certificate_arn         = aws_acm_certificate.api_certificate.arn
+  validation_record_fqdns = [for record in aws_route53_record.api_cert_validation : record.fqdn]
+
+  timeouts {
+    create = "15m"
+  }
+}
+
 ############################################################# API GATEWAY CONFIGURATION #############################################################
 
 # API Gateway (HTTP API)
@@ -168,13 +204,12 @@ resource "aws_apigatewayv2_api" "khaneducation_api" {
   name          = "${var.function_name}-api"
   protocol_type = "HTTP"
   tags          = var.tags
-
-   cors_configuration {
+  cors_configuration {
     allow_credentials = false
     expose_headers    = ["*"]
     allow_headers     = ["*"]
     allow_methods     = ["*"]
-    allow_origins     = ["*"]
+    allow_origins     = var.cors_origins != null ? var.cors_origins : ["https://${var.domain_name}", "https://www.${var.domain_name}"]
     max_age          = 86400
   }
 }
@@ -214,4 +249,63 @@ resource "aws_lambda_permission" "api_gw_permission" {
   function_name = aws_lambda_function.khaneducation_lambda.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.khaneducation_api.execution_arn}/*/*"
+}
+
+############################################################# CUSTOM DOMAIN CONFIGURATION #############################################################
+
+# API Gateway Custom Domain
+resource "aws_apigatewayv2_domain_name" "api_domain" {
+  domain_name = "api.${var.domain_name}"
+
+  domain_name_configuration {
+    certificate_arn = aws_acm_certificate_validation.api_certificate.certificate_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+
+  depends_on = [aws_acm_certificate_validation.api_certificate]
+  tags       = var.tags
+}
+
+# API Gateway Domain Mapping
+resource "aws_apigatewayv2_api_mapping" "api_mapping" {
+  api_id      = aws_apigatewayv2_api.khaneducation_api.id
+  domain_name = aws_apigatewayv2_domain_name.api_domain.id
+  stage       = aws_apigatewayv2_stage.default_stage.id
+}
+
+# Route 53 A record for API subdomain
+resource "aws_route53_record" "api_record" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "api.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+############################################################# OUTPUTS #############################################################
+
+# Outputs
+output "api_gateway_url" {
+  description = "API Gateway URL"
+  value       = aws_apigatewayv2_api.khaneducation_api.api_endpoint
+}
+
+output "custom_api_url" {
+  description = "Custom API URL"
+  value       = "https://api.${var.domain_name}"
+}
+
+output "lambda_function_name" {
+  description = "Lambda function name"
+  value       = aws_lambda_function.khaneducation_lambda.function_name
+}
+
+output "ecr_repository_url" {
+  description = "ECR repository URL"
+  value       = aws_ecr_repository.khaneducation_repo.repository_url
 }

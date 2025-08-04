@@ -64,3 +64,14 @@ variable "gemini_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "cors_origins" {
+  description = "CORS allowed origins"
+  type        = list(string)
+  default     = ["https://khaneducation.ai", "https://www.khaneducation.ai"]
+}
+variable "domain_name" {
+  description = "Domain name for the application"
+  type        = string
+  default     = "khaneducation.ai"
+}
