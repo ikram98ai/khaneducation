@@ -43,13 +43,13 @@ export default function Index() {
   const testimonials = [
     {
       quote:
-        "EduAgent AI has transformed how I teach. Creating personalized lessons takes minutes instead of hours!",
+        "Khan Education has transformed how I teach. Creating personalized lessons takes minutes instead of hours!",
       author: "Dr. Sarah Johnson",
       role: "Mathematics Instructor",
     },
     {
       quote:
-        "I've improved my grades in math by 30% since using EduAgent. The AI tutor explains concepts in a way I actually understand.",
+        "I've improved my grades in math by 30% since using Khan Education. The AI tutor explains concepts in a way I actually understand.",
       author: "Alex Martinez",
       role: "Grade 10 Student",
     },
@@ -74,19 +74,19 @@ export default function Index() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
               Transform Education with{" "}
               <span className="text-indigo-600">AI-Powered</span> Learning
             </h1>
-            <p className="mt-6 text-xl text-gray-600 max-w-2xl">
-              EduAgent AI revolutionizes the classroom experience with
+            <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl">
+              Khan Education revolutionizes the classroom experience with
               personalized lessons, intelligent tutoring, and actionable
               insights for students and educators.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row sm:flex-wrap gap-4">
               <Link
                 to="/login"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl w-full sm:w-auto text-center"
               >
                 Get Started Free
               </Link>
@@ -96,7 +96,7 @@ export default function Index() {
                     .getElementById("features")
                     .scrollIntoView({ behavior: "smooth" })
                 }
-                className="bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-8 rounded-xl border border-gray-200 transition-all duration-300 shadow-md hover:shadow-lg"
+                className="bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-8 rounded-xl border border-gray-200 transition-all duration-300 shadow-md hover:shadow-lg w-full sm:w-auto text-center"
               >
                 Explore Features
               </button>
@@ -162,13 +162,13 @@ export default function Index() {
 
       {/* Features Section */}
       <div id="features" className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Powerful Features for Modern Education
             </h2>
             <p className="text-xl text-gray-600">
-              Whether you're a student or educator, EduAgent AI provides the
+              Whether you're a student or educator, Khan Education provides the
               tools you need to succeed
             </p>
           </div>
@@ -194,18 +194,18 @@ export default function Index() {
       </div>
 
       {/* How It Works */}
-      <div className="py-16 md:py-24 bg-gradient-to-br from-indigo-50 to-purple-50">
+      <div id="how-it-works" className="py-16 md:py-24 bg-gradient-to-br from-indigo-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              How EduAgent AI Works
+              How Khan Education Works
             </h2>
             <p className="text-xl text-gray-600">
               Transforming education in three simple steps
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -282,7 +282,7 @@ export default function Index() {
       </div>
 
       {/* Testimonials */}
-      <div className="py-16 md:py-24 bg-white">
+      <div id="testimonials" className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -293,7 +293,7 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={index}
@@ -333,6 +333,47 @@ export default function Index() {
         </div>
       </div>
 
+      {/* Pricing Section */}
+      <div id="pricing" className="py-16 md:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-xl text-gray-600">
+              Affordable pricing for individuals and institutions.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Pricing plans would go here */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Free</h3>
+              <p className="text-gray-600 mb-4">Basic features for individual students.</p>
+              <p className="text-4xl font-bold text-gray-900 mb-6">$0</p>
+              <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
+                Get Started
+              </button>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Pro</h3>
+              <p className="text-gray-600 mb-4">Advanced features for dedicated learners.</p>
+              <p className="text-4xl font-bold text-gray-900 mb-6">$15</p>
+              <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
+                Choose Plan
+              </button>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Institution</h3>
+              <p className="text-gray-600 mb-4">Full suite of tools for schools and organizations.</p>
+              <p className="text-4xl font-bold text-gray-900 mb-6">Contact Us</p>
+              <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
+                Contact Sales
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* CTA Section */}
       <div className="py-16 md:py-24 bg-gradient-to-br from-indigo-600 to-purple-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -341,7 +382,7 @@ export default function Index() {
               Ready to Transform Learning?
             </h2>
             <p className="text-xl text-indigo-100 mb-10">
-              Join thousands of educators and students already using EduAgent AI
+              Join thousands of educators and students already using Khan Education
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4">
