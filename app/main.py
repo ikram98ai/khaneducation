@@ -49,7 +49,7 @@ def assist_user(request: schemas.AIContentRequest):
     lesson_content = ""
     if request.lesson_id:
         try:
-            lesson = Lesson.get(request.subject_id, request.lesson_id)  # hash_key, range_key
+            lesson = Lesson.get(request.lesson_id)  # hash_key, range_key
             lesson_content = f"{lesson.title}" if lesson else ""
             lesson_content += f"\n{lesson.content}" if lesson else ""
         except Lesson.DoesNotExist:
