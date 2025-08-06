@@ -40,7 +40,7 @@ def get_languages():
 
 
 @app.post("/ai/assist", response_model=dict)
-def assist_user(request: schemas.AIContentRequest):
+async def assist_user(request: schemas.AIContentRequest):
     try:
         subject = Subject.get(request.subject_id)  # Fetch Subject by hash key (id)
     except Subject.DoesNotExist:
@@ -58,7 +58,8 @@ def assist_user(request: schemas.AIContentRequest):
 
     context = f"Subject: {subject.name if subject else 'Unknown'}, Lesson: {lesson_content}"
     # --- End Fetch Context ---
-    return {"ai_response": ai.ai_assistant(request.query_text, context)}
+    response = await  ai.ai_assistant(request.query_text, context)
+    return {"ai_response":response}
 
 
 handler = Mangum(app)

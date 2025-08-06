@@ -10,9 +10,9 @@ from datetime import datetime, timezone  # Use timezone-aware datetime for Dynam
 import uuid  # If using UUIDs or need unique IDs
 from . import crud
 
-def create_lesson_with_content(subject_id: str, grade_level:int, language_value:str, instructor_id: str, title: str) -> Lesson:  # Return PynamoDB model
+async def create_lesson_with_content(subject_id: str, grade_level:int, language_value:str, instructor_id: str, title: str) -> Lesson:  # Return PynamoDB model
     try:
-        lesson_content = ai.generate_lesson(
+        lesson_content = await ai.generate_lesson(
             title=title,
             grade_level=grade_level,
             language=language_value,
@@ -30,17 +30,16 @@ def create_lesson_with_content(subject_id: str, grade_level:int, language_value:
         )
 
         # Practice Task
-        task_content = ai.generate_practice_task(
+        practice_tasks = await ai.generate_practice_tasks(
             lesson_content=lesson_content,
-            difficulty="ME",
             grade_level=grade_level,
             language=language_value,
         )
-
-        new_task_id = str(uuid.uuid4())
-        practice_task = PracticeTask(
-            id=new_task_id, lesson_id=new_lesson_id, lesson_title=title, content=task_content, difficulty="ME", ai_generated=True, created_at=datetime.now(timezone.utc)
-        )
+        for task in practice_tasks:
+            new_task_id = str(uuid.uuid4())
+            PracticeTask(
+                id=new_task_id, lesson_id=new_lesson_id, lesson_title=title, content=task.content, difficulty=task.difficulty, ai_generated=True, created_at=datetime.now(timezone.utc)
+            )
 
         new_quiz_id = str(uuid.uuid4())
         db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, lesson_title=title, version_number=1, ai_generated=True, created_at=datetime.now(timezone.utc))
@@ -49,16 +48,16 @@ def create_lesson_with_content(subject_id: str, grade_level:int, language_value:
         conn = Connection(region='us-east-1')  # Adjust region as needed
         with TransactWrite(connection=conn) as transaction:
             transaction.save(db_lesson)
-            transaction.save(practice_task)
+            # transaction.save(practice_task)
             transaction.save(db_quiz)
 
-        quiz_data = ai.generate_quiz(
+        quiz_questions = await ai.generate_quiz_questions(
             lesson_content=lesson_content,
             grade_level=grade_level,
             language=language_value,
         )
 
-        for question_data in quiz_data["questions"]:
+        for question_data in quiz_questions:
             db_quiz.add_question(
                 question_text=question_data["question_text"],
                 question_type=question_data["question_type"],
@@ -80,7 +79,7 @@ def create_lesson_with_content(subject_id: str, grade_level:int, language_value:
         raise  # Re-raise or raise a custom service exception
 
 
-def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas.QuizResponse]) -> schemas.QuizSubmissionResponse:
+async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas.QuizResponse]) -> schemas.QuizSubmissionResponse:
     try:
         try:
             quiz = Quiz.get(quiz_id)
@@ -134,7 +133,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
         db_attempt.save()  # Update the attempt record
 
         # Generate AI feedback (no DB interaction here)
-        ai_feedback = ai.generate_quiz_feedback(student_answers=student_answers, correct_answers=correct_answers)
+        ai_feedback = await ai.generate_quiz_feedback(student_answers=student_answers, correct_answers=correct_answers)
 
         # Regenerate quiz if needed
         regenerated_quiz = None
@@ -148,7 +147,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
                         max_version = max((q.version_number for q in quizzes_for_lesson))
                         print("Max version found:", max_version)
                         new_version = max_version + 1
-                        new_quiz_data = ai.generate_quiz(
+                        new_quiz_questions = ai.generate_quiz_questions(
                             lesson_content=lesson.content,
                             grade_level=student.current_grade,
                             language=student.language,
@@ -158,7 +157,7 @@ def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas
                         new_quiz = Quiz(id=new_quiz_id_2, lesson_id=lesson.id, lesson_title= lesson.title,version_number=new_version, ai_generated=True, created_at=datetime.now(timezone.utc))
                         
                         # Create new questions
-                        for question_data in new_quiz_data["questions"]:
+                        for question_data in new_quiz_questions:
                             new_quiz.add_question(
                                     question_text=question_data["question_text"],
                                     question_type=question_data["question_type"],

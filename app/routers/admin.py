@@ -106,7 +106,7 @@ async def create_lesson_for_subject(subject_id: str, lesson: schemas.LessonCreat
     lesson.instructor_id = current_admin.id
 
     try:
-        db_lesson = services.create_lesson_with_content(subject_id, db_subject.grade_level, db_subject.language, current_admin.id, lesson.title)
+        db_lesson = await services.create_lesson_with_content(subject_id, db_subject.grade_level, db_subject.language, current_admin.id, lesson.title)
         return db_lesson
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

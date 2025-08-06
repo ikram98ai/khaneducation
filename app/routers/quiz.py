@@ -12,13 +12,13 @@ router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 
 @router.post("/{quiz_id}/submit", response_model=schemas.QuizSubmissionResponse)
-def submit_quiz(
+async def submit_quiz(
     quiz_id: str,
     responses: List[schemas.QuizResponse],
     current_student: models.Student = Depends(get_current_student),
 ):
     try:
-        return services.submit_quiz_responses(
+        return await services.submit_quiz_responses(
             quiz_id,
             current_student.user_id,
             responses,
