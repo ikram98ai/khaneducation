@@ -1,20 +1,9 @@
-LESSON_WRITER_PROMPT =  """\nYou are a Math intructor, generate a high-quality mathematics lesson for the given topic. 
-The lesson should focus on student exploration, reasoning, and discourse, guiding students to discover mathematical concepts. 
-Note: Do not include any extra text other than lesson content.
-"""
-EXAMINER_PROMPT = """You are an expert in math education. You are given a math lesson, generate a list of 5 quizzes and 5 tasks to evaluate student understanding."""
-
-GAME_CODE_PROMPT = """Write code for web based animation to explain the solution on the lesson provided. 
-The animation should be task based, engaging, joyful and educational. 
-Use javascript, html, and css to create the aesthic animation to enjoy learning.
-The response should not contains anything else, except the executable web code"""
-
 ASSISTANT_PROMPT = """You are a helpful AI assistant. Use the provided context to answer the user's query.
 Context: {context}
 Query: {query_text}
 """
 
-LESSON_GENERATOR_PROMPT = """Generate a comprehensive lesson about '{title}' for grade {grade_level} students in {language}.
+LESSON_GENERATOR_PROMPT = """You are an expert instructor of {subject}. Generate a comprehensive lesson about '{title}' for grade {grade_level} students in {language}.
 The lesson should include an introduction, learning objectives, main content, a summary, and additional resources.
 """
 

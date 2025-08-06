@@ -10,9 +10,10 @@ from datetime import datetime, timezone  # Use timezone-aware datetime for Dynam
 import uuid  # If using UUIDs or need unique IDs
 from . import crud
 
-async def create_lesson_with_content(subject_id: str, grade_level:int, language_value:str, instructor_id: str, title: str) -> Lesson:  # Return PynamoDB model
+async def create_lesson_with_content(subject_id: str, subject:str, grade_level:int, language_value:str, instructor_id: str, title: str) -> Lesson:  # Return PynamoDB model
     try:
         lesson_content = await ai.generate_lesson(
+            subject=subject,
             title=title,
             grade_level=grade_level,
             language=language_value,

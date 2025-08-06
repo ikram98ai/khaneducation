@@ -30,14 +30,14 @@ async def ai_assistant(query_text, context):
     return result.final_output
 
 
-async def generate_lesson(title, grade_level, language):
+async def generate_lesson(subject, title, grade_level, language):
     """
     Generate lesson content using AI based on title, grade level, and language.
     """
     agent = Agent(
         name="Lesson Generator",
         instructions=LESSON_GENERATOR_PROMPT.format(
-            title=title, grade_level=grade_level, language=language
+            subject=subject, title=title, grade_level=grade_level, language=language
         ),
         model=model,
     )
