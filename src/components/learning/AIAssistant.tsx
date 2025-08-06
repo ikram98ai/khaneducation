@@ -44,8 +44,8 @@ export const AIAssistant = ({
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: "1",
-        content: `Hi! I'm your AI learning assistant. I'm here to help you understand ${subject} ${lesson && "• " + lesson} better. 
-        Feel free to ask me questions about the concepts, request explanations, or get study tips!`,
+        content: `Hi! I'm your AI learning assistant. I'm here to help you understand ${subject}${lesson ? ` • ${lesson}` : ''} better. 
+        Feel free to ask me questions about the concepts, request explanations, or get study tips!`, 
         type: "assistant",
         timestamp: new Date(),
       };
