@@ -58,7 +58,7 @@ async def assist_user(request: schemas.AIContentRequest):
 
     context = f"Subject: {subject.name if subject else 'Unknown'}, Lesson: {lesson_content}"
     # --- End Fetch Context ---
-    response = await  ai.ai_assistant(request.query_text, context)
+    response = await  ai.ai_assistant(request.user_messages, context)
     return {"ai_response":response}
 
 

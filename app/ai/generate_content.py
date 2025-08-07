@@ -1,8 +1,8 @@
 """
 AI functions for generating educational content.
 """
-from agents import Agent, Runner
 from pydantic import BaseModel
+from typing import Literal
 from .prompts import (
     ASSISTANT_PROMPT,
     LESSON_GENERATOR_PROMPT,
@@ -10,44 +10,32 @@ from .prompts import (
     QUIZ_GENERATOR_PROMPT,
     QUIZ_FEEDBACK_GENERATOR_PROMPT,
 )
-from .utils import get_model
-
-model = get_model()
+from .utils import get_completion
 
 
-async def ai_assistant(query_text, context):
+async def ai_assistant(user_messages, context):
     """
     AI assistant to answer user queries with context.
     """
-    agent = Agent(
-        name="AI Assistant",
-        instructions=ASSISTANT_PROMPT.format(
-            context=context, query_text=query_text
-        ),
-        model=model,
+    result = await get_completion(
+        ASSISTANT_PROMPT.format(context=context),
+        user_messages=user_messages
     )
-    result = await Runner.run(agent, input="")
-    return result.final_output
+    return result
 
 
 async def generate_lesson(subject, title, grade_level, language):
     """
     Generate lesson content using AI based on title, grade level, and language.
     """
-    agent = Agent(
-        name="Lesson Generator",
-        instructions=LESSON_GENERATOR_PROMPT.format(
-            subject=subject, title=title, grade_level=grade_level, language=language
-        ),
-        model=model,
-    )
-    result = await Runner.run(agent, input="")
-    return result.final_output
-
+    result = await get_completion(
+        LESSON_GENERATOR_PROMPT.format( subject=subject, title=title, grade_level=grade_level, language=language),
+        f"Generate lesson '{title}' for {subject}")
+    return result
 
 class PracticeTask(BaseModel):
     content: str
-    difficulty: str
+    difficulty: Literal["EA","ME", "HA"]
     solution: str
 
 
@@ -59,19 +47,14 @@ async def generate_practice_tasks(lesson_content, grade_level, language):
     """
     Generate practice tasks based on lesson content.
     """
-    agent = Agent(
-        name="Practice Task Generator",
-        instructions=PRACTICE_TASK_GENERATOR_PROMPT.format(
-            lesson_content=lesson_content,
-            grade_level=grade_level,
-            language=language,
-        ),
-        model=model,
-        output_type=PracticeTasks,
-    )
-    result = await Runner.run(agent, input="")
-    # The output is a list of tasks, so we need to parse it
-    tasks = result.final_output.tasks
+
+    result = await get_completion(
+        PRACTICE_TASK_GENERATOR_PROMPT.format( grade_level=grade_level, language=language ),
+        f"Generate practice tasks from the following lesson content:\n\n:Lesson Content: {lesson_content}",
+        output_type=PracticeTasks
+        )
+
+    tasks = result.tasks
     return tasks
 
 
@@ -89,31 +72,19 @@ async def generate_quiz_questions(lesson_content, grade_level, language):
     """
     Generate quiz questions based on lesson content.
     """
-    agent = Agent(
-        name="Quiz Generator",
-        instructions=QUIZ_GENERATOR_PROMPT.format(
-            lesson_content=lesson_content,
-            grade_level=grade_level,
-            language=language,
-        ),
-        model=model,
-        output_type=Quiz,
-    )
-    result = await Runner.run(agent, input="")
-    # The output should be a JSON object with a list of questions
-    return result.final_output.questions
+    result = await get_completion(
+        QUIZ_GENERATOR_PROMPT.format( grade_level=grade_level, language=language ),
+        f"Generate Quiz questions from the following lesson content:\n\n:Lesson Content: {lesson_content}",
+
+        output_type=Quiz
+        )
+    return result.questions
 
 
 async def generate_quiz_feedback(student_answers, correct_answers):
     """
     Generate personalized feedback for quiz attempts.
     """
-    agent = Agent(
-        name="Quiz Feedback Generator",
-        instructions=QUIZ_FEEDBACK_GENERATOR_PROMPT.format(
-            student_answers=student_answers, correct_answers=correct_answers
-        ),
-        model=model,
-    )
-    result = await Runner.run(agent, input="")
-    return result.final_output
+    result = await get_completion(QUIZ_FEEDBACK_GENERATOR_PROMPT.format(correct_answers=correct_answers ),
+                            f"Student's Answers: {student_answers}")
+    return result

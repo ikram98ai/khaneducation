@@ -36,21 +36,16 @@ async def create_lesson_with_content(subject_id: str, subject:str, grade_level:i
             grade_level=grade_level,
             language=language_value,
         )
+        tasks = []
         for task in practice_tasks:
             new_task_id = str(uuid.uuid4())
-            PracticeTask(
+            task =PracticeTask(
                 id=new_task_id, lesson_id=new_lesson_id, lesson_title=title, content=task.content, difficulty=task.difficulty, ai_generated=True, created_at=datetime.now(timezone.utc)
             )
+            tasks.append(task)
 
         new_quiz_id = str(uuid.uuid4())
         db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, lesson_title=title, version_number=1, ai_generated=True, created_at=datetime.now(timezone.utc))
-
-        # All models involved must be in the same region/account and use the same DynamoDB client.
-        conn = Connection(region='us-east-1')  # Adjust region as needed
-        with TransactWrite(connection=conn) as transaction:
-            transaction.save(db_lesson)
-            # transaction.save(practice_task)
-            transaction.save(db_quiz)
 
         quiz_questions = await ai.generate_quiz_questions(
             lesson_content=lesson_content,
@@ -60,14 +55,19 @@ async def create_lesson_with_content(subject_id: str, subject:str, grade_level:i
 
         for question_data in quiz_questions:
             db_quiz.add_question(
-                question_text=question_data["question_text"],
-                question_type=question_data["question_type"],
-                options=question_data["options"],
-                correct_answer=question_data["correct_answer"],
+                question_text=question_data.question_text,
+                question_type=question_data.question_type,
+                options=question_data.options,
+                correct_answer=question_data.correct_answer,
             )
-        db_quiz.save()
 
-        # db_lesson = Lesson.get(subject_id, new_lesson_id) # Fetch the saved lesson to return it
+        # All models involved must be in the same region/account and use the same DynamoDB client.
+        conn = Connection(region='us-east-1')  # Adjust region as needed
+        with TransactWrite(connection=conn) as transaction:
+            transaction.save(db_lesson)
+            transaction.save(db_quiz)
+            for task in tasks:
+                transaction.save(task)
 
         return db_lesson  # Return the PynamoDB model instance
     except TransactWriteError as e:

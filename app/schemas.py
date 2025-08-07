@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict
 import enum
 
 
@@ -183,7 +183,7 @@ class DashboardStats(BaseModel):
 
 
 class AIContentRequest(BaseModel):
-    query_text: str
+    user_messages: List[Dict[str,str]]
     subject_id: str
     lesson_id: Optional[str] = None
 
