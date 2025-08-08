@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import List
 from datetime import datetime, timezone
 from .. import crud, schemas, models, services
@@ -96,7 +96,7 @@ def delete_subject(subject_id: str):
 
 # Nested Lesson routes
 @router.post("/subjects/{subject_id}/lessons/", response_model=schemas.LessonCreate)
-async def create_lesson_for_subject(subject_id: str, lesson: schemas.LessonCreate, current_admin: schemas.User = Depends(get_current_admin)):
+async def create_lesson_for_subject(subject_id: str, lesson: schemas.LessonCreate, background_tasks: BackgroundTasks, current_admin: schemas.User = Depends(get_current_admin)):
     db_subject = crud.crud_subject.get(hash_key=subject_id)
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
@@ -105,10 +105,39 @@ async def create_lesson_for_subject(subject_id: str, lesson: schemas.LessonCreat
     lesson.instructor_id = current_admin.id
 
     try:
-        db_lesson = await services.create_lesson_with_content(subject_id, db_subject.name, db_subject.grade_level, lesson.language, current_admin.id, lesson.title)
+        db_lesson = await services.create_lesson(
+            subject_id=subject_id,
+            subject=db_subject.name,
+            grade_level=db_subject.grade_level,
+            language_value=lesson.language,
+            instructor_id=current_admin.id,
+            title=lesson.title,
+            background_tasks=background_tasks
+        )
         return db_lesson
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/lessons/{lesson_id}/regenerate-content/", status_code=status.HTTP_202_ACCEPTED)
+async def regenerate_lesson_content(lesson_id: str, background_tasks: BackgroundTasks):
+    db_lesson = crud.crud_lesson.get(hash_key=lesson_id)
+    if db_lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    db_subject = crud.crud_subject.get(hash_key=db_lesson.subject_id)
+    if db_subject is None:
+        raise HTTPException(status_code=404, detail="Subject not found for this lesson")
+
+    background_tasks.add_task(
+        services.create_lesson_content,
+        lesson_id=lesson_id,
+        subject=db_subject.name,
+        grade_level=db_subject.grade_level,
+        language_value=db_lesson.language,
+        title=db_lesson.title
+    )
+
+    return {"message": "Lesson content regeneration started in the background."}
 
 
 @router.get("/subjects/{subject_id}/lessons/", response_model=List[schemas.Lesson])

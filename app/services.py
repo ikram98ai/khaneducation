@@ -1,16 +1,17 @@
 # app/services.py
 from typing import List
-from . import schemas  # Keep schemas
+from fastapi import BackgroundTasks
+from . import schemas
 from .ai import generate_content as ai
 from .models import Lesson, PracticeTask, Quiz, QuizAttempt, Student
 from pynamodb.transactions import TransactWrite
 from pynamodb.exceptions import TransactWriteError
 from pynamodb.connection import Connection
-from datetime import datetime, timezone  # Use timezone-aware datetime for DynamoDB
-import uuid  # If using UUIDs or need unique IDs
+from datetime import datetime, timezone
+import uuid
 from . import crud
 
-async def create_lesson_with_content(subject_id: str, subject:str, grade_level:int, language_value:str, instructor_id: str, title: str) -> Lesson:  # Return PynamoDB model
+async def create_lesson_content(lesson_id: str, subject: str, grade_level: int, language_value: str, title: str):
     try:
         lesson_content = await ai.generate_lesson(
             subject=subject,
@@ -19,18 +20,14 @@ async def create_lesson_with_content(subject_id: str, subject:str, grade_level:i
             language=language_value,
         )
 
-        new_lesson_id = str(uuid.uuid4())
-        db_lesson = Lesson(
-            subject_id=subject_id,
-            id=new_lesson_id,
-            instructor_id=instructor_id,
-            title=title,
-            content=lesson_content,
-            status="DR",
-            created_at=datetime.now(timezone.utc),
-        )
+        db_lesson = crud.crud_lesson.get(hash_key=lesson_id)
+        if not db_lesson:
+            print(f"Lesson with id {lesson_id} not found.")
+            return
 
-        # Practice Task
+        db_lesson.content = lesson_content
+        db_lesson.status = "draft"
+        
         practice_tasks = await ai.generate_practice_tasks(
             lesson_content=lesson_content,
             grade_level=grade_level,
@@ -39,13 +36,26 @@ async def create_lesson_with_content(subject_id: str, subject:str, grade_level:i
         tasks = []
         for task in practice_tasks:
             new_task_id = str(uuid.uuid4())
-            task =PracticeTask(
-                id=new_task_id, lesson_id=new_lesson_id, lesson_title=title, content=task.content, difficulty=task.difficulty, ai_generated=True, created_at=datetime.now(timezone.utc)
+            task_obj = PracticeTask(
+                id=new_task_id,
+                lesson_id=lesson_id,
+                lesson_title=title,
+                content=task.content,
+                difficulty=task.difficulty,
+                ai_generated=True,
+                created_at=datetime.now(timezone.utc)
             )
-            tasks.append(task)
+            tasks.append(task_obj)
 
         new_quiz_id = str(uuid.uuid4())
-        db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, lesson_title=title, quiz_version=1, ai_generated=True, created_at=datetime.now(timezone.utc))
+        db_quiz = Quiz(
+            id=new_quiz_id,
+            lesson_id=lesson_id,
+            lesson_title=title,
+            quiz_version=1,
+            ai_generated=True,
+            created_at=datetime.now(timezone.utc)
+        )
 
         quiz_questions = await ai.generate_quiz_questions(
             lesson_content=lesson_content,
@@ -61,23 +71,54 @@ async def create_lesson_with_content(subject_id: str, subject:str, grade_level:i
                 correct_answer=question_data.correct_answer,
             )
 
-        # All models involved must be in the same region/account and use the same DynamoDB client.
-        conn = Connection(region='us-east-1')  # Adjust region as needed
+        conn = Connection(region='us-east-1')
         with TransactWrite(connection=conn) as transaction:
             transaction.save(db_lesson)
             transaction.save(db_quiz)
             for task in tasks:
                 transaction.save(task)
 
-        return db_lesson  # Return the PynamoDB model instance
     except TransactWriteError as e:
-        print(f"Transaction failed: {e}")  # Use logging in production
-        raise ValueError("Failed to create lesson with content due to transaction error")
-    except Exception as e:  # Catch specific PynamoDB exceptions if needed (e.g., PutError)
-        # Handle rollback/compensation logic if partial creation occurred (DynamoDB is not transactional like SQL)
-        # This is more complex in DynamoDB. Consider using DynamoDB Transactions for critical multi-item writes.
-        print(f"Error in create_lesson_with_content: {e}")  # Use logging in production
-        raise  # Re-raise or raise a custom service exception
+        print(f"Transaction failed: {e}")
+        # Handle transaction error, maybe update lesson status to 'FAILED'
+        db_lesson.status = "failed"
+        db_lesson.save()
+    except Exception as e:
+        print(f"Error in create_lesson_content: {e}")
+        db_lesson.status = "failed"
+        db_lesson.save()
+
+
+async def create_lesson(
+    subject_id: str,
+    subject: str,
+    grade_level: int,
+    language_value: str,
+    instructor_id: str,
+    title: str,
+    background_tasks: BackgroundTasks
+) -> Lesson:
+    new_lesson_id = str(uuid.uuid4())
+    db_lesson = Lesson(
+        subject_id=subject_id,
+        id=new_lesson_id,
+        instructor_id=instructor_id,
+        title=title,
+        status="pending",
+        created_at=datetime.now(timezone.utc),
+    )
+    db_lesson.save()
+
+    background_tasks.add_task(
+        create_lesson_content,
+        lesson_id=new_lesson_id,
+        subject=subject,
+        grade_level=grade_level,
+        language_value=language_value,
+        title=title
+    )
+
+    return db_lesson
 
 
 async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas.QuizResponse]) -> schemas.QuizSubmissionResponse:

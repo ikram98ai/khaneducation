@@ -35,7 +35,7 @@ async def generate_lesson(subject, title, grade_level, language):
 
 class PracticeTask(BaseModel):
     content: str
-    difficulty: Literal["EA","ME", "HA"]
+    difficulty: Literal["easy","medium", "hard"]
     solution: str
 
 

@@ -30,6 +30,8 @@ class LessonStatusEnum(enum.Enum):
     VERIFIED = "verified"
     PUBLISHED = "published"
     ARCHIVED = "archived"
+    PENDING = "pending"
+    FAILED = "failed"
 
 
 class DifficultyLevelEnum(enum.Enum):
