@@ -165,13 +165,13 @@ class LessonSubjectIndex(GlobalSecondaryIndex):
 
 class LessonSubjectLanguageIndex(GlobalSecondaryIndex):
     class Meta:
-        index_name = "subject-index"
+        index_name = "subject-language-index"
         read_capacity_units = 1
         write_capacity_units = 1
         projection = AllProjection()
 
     subject_id = UnicodeAttribute(hash_key=True)
-    language = UnicodeAttribute(range_key=True)  # Lesson ID as range key
+    language = UnicodeAttribute(range_key=True)
 
 
 class LessonInstructorIndex(GlobalSecondaryIndex):

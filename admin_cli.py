@@ -3,7 +3,7 @@ import json
 from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz, \
                        QuizAttempt, StudentProgress, Notification, LessonRating, StudySession
 from app.utils import hash, is_strong_password
-
+from tqdm import tqdm
 app = typer.Typer()
 
 @app.command()
@@ -100,7 +100,7 @@ def seed_db():
     with open("seed.json", "r") as f:
         data = json.load(f)
 
-    # for user_data in data.get("users", []):
+    # for user_data in tqdm(data.get("users", [])):
     #     password = user_data.pop("password")
     #     if not is_strong_password(password):
     #         print(f"Password for user {user_data['username']} is not strong enough. Skipping.")
@@ -108,11 +108,12 @@ def seed_db():
     #     user_data["password"] = hash(password)
     #     user = User(**user_data)
     #     user.save()
-    #     print(f"Created {user_data['username']} user account")
+    #     # print(f"Created {user_data['username']} user account")
 
     user = list(User.email_index.query("ikram98ai@edu.com"))[0]
+    print(f"Found user {user.username}.")
 
-    for subject_data in data.get("subjects", []):
+    for subject_data in tqdm(data.get("subjects", [])):
         subject_info = {
             "name": subject_data.get("name"),
             "description": subject_data.get("description"),
@@ -121,7 +122,7 @@ def seed_db():
         }
         subject = Subject(**subject_info)
         subject.save()
-        for lesson_data in subject_data.get("lessons", []):
+        for lesson_data in tqdm(subject_data.get("lessons", [])):
             lesson = Lesson(
                 subject_id=subject.id,
                 instructor_id=user.id,

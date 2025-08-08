@@ -270,7 +270,7 @@ def generate_data():
             diff_band = "hard"
         
         for subject in SUBJECTS:
-            
+            lessons=[]
             for order in range(1, 11):
                 for lang in LANGUAGES:
                     lesson = LESSONS[subject][diff_band][order-1]

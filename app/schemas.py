@@ -1,36 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict
-import enum
-
-
-class UserRoleEnum(enum.Enum):
-    STUDENT = "student"
-    INSTRUCTOR = "instructor"
-    CONTENT_MANAGER = "content_manager"
-    STAFF = "staff"
-    ADMIN = "admin"
-
-
-class LanguageChoicesEnum(enum.Enum):
-    EN = "English"
-    FR = "French"
-    PS = "Pashto"
-    ES = "Spanish"
-    AR = "Arabic"
-    FA = "Persian"
-    UR = "Urdu"
-
-
-class LessonStatusEnum(enum.Enum):
-    DRAFT = "DR"
-    VERIFIED = "VE"
-
-
-class DifficultyLevelEnum(enum.Enum):
-    EASY = "EA"
-    MEDIUM = "ME"
-    HARD = "HA"
+from .models import UserRoleEnum, LessonStatusEnum, DifficultyLevelEnum, LanguageChoicesEnum
 
 
 class SubjectBase(BaseModel):

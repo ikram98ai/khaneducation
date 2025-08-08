@@ -54,9 +54,9 @@ class CRUDLesson(CRUDBase[Lesson]):
 
     def get_by_subject_and_language(self, subject_id: str, language:str) -> List[Lesson]:
         try:
-            return list(self.model.subject_and_language_index.query(subject_id,language))
+            return list(self.model.subject_and_language_index.query(subject_id,Lesson.language == language))
         except Exception as e:
-            logger.error(f"Error fetching lessons for subject {subject_id}: {e}")
+            logger.error(f"Error fetching lessons for subject {subject_id} and language {language}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
     def get_by_instructor(self, instructor_id: str) -> List[Lesson]:

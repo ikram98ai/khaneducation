@@ -18,7 +18,7 @@ def get_student_practice_tasks(student_id: str):
         
         all_tasks = []
         for subject_id in enrolled_subject_ids:
-            lessons = crud.crud_lesson.get_by_subject(subject_id=subject_id)
+            lessons = crud.crud_lesson.get_by_subject_and_language(subject_id=subject_id,language=student.language)
             for lesson in lessons:
                 tasks = crud.crud_practice_task.get_by_lesson(lesson_id=lesson.id)
                 all_tasks.extend(tasks)

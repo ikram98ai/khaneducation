@@ -229,7 +229,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
 
 def get_student_dashboard_stats(student_id: str) -> schemas.DashboardStats:
     # --- Completed Lessons ---
-    passed_attempts = list(QuizAttempt.scan((QuizAttempt.student_id == student_id) & (QuizAttempt.passed)))
+    passed_attempts = list(QuizAttempt.scan((QuizAttempt.student_id == student_id) & (QuizAttempt.passed==True)))
     completed_lesson_ids = set()
     for attempt in passed_attempts:
         try:
@@ -246,7 +246,7 @@ def get_student_dashboard_stats(student_id: str) -> schemas.DashboardStats:
             enrolled_subject_ids = [e.subject_id for e in student.get_active_enrollments()]
             total_lessons = 0
             for subject_id in enrolled_subject_ids:
-                total_lessons += Lesson.subject_index.count(subject_id)
+                total_lessons += Lesson.subject_and_language_index.count(subject_id,Lesson.language == student.language)
         else:
             total_lessons = 0
     except Student.DoesNotExist:

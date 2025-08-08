@@ -59,7 +59,7 @@ def get_subject_details(subject_id: str, current_student: models.Student = Depen
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
 
-    lessons = crud.crud_lesson.get_by_subject(subject_id=subject.id)
+    lessons = crud.crud_lesson.get_by_subject_and_language(subject_id=subject.id, language=current_student.language)
     total_lessons = len(lessons)
 
     completed_lessons_count = 0
