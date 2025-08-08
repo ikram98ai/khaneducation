@@ -32,7 +32,7 @@ export interface Lesson {
   subject_id: string;
   title: string;
   content: string;
-  status: "VE" | "DR";
+  status: "verified" | "draft" | "pending" | "failed";
   language: "Arabic" | "English" | "Pashto" | "Persian" | "Urdu";
   order_in_subject?: number;
   created_at: string;

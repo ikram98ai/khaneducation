@@ -43,6 +43,7 @@ import {
   useCreateAdminLesson,
   useUpdateAdminLesson,
   useDeleteAdminLesson,
+  useRegenerateAdminLessonContent,
 } from "@/hooks/useApiQueries";
 import {
   Plus,
@@ -52,6 +53,7 @@ import {
   FileText,
   CheckCircle,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,10 +62,18 @@ import { Lesson } from "@/types/api";
 
 const lessonSchema = z.object({
   title: z.string().min(1, "Lesson title is required"),
-  language: z.enum(["EN","PS","UR","FR","AR","ES","FA"]),
-  content: z.string().min(1, "Lesson content is required").optional(),
+  language: z
+    .enum([
+      "Arabic",
+      "English",
+      "Pashto",
+      "Persian",
+      "Urdu",
+    ])
+    .default("Pashto"),
+  content: z.string().optional(),
   subject_id: z.string().min(1, "Subject is required"),
-  status: z.enum(["VE", "DR"]).default("DR"),
+  status: z.enum(["draft", "pending", "failed", "verified"]).default("draft"),
 });
 
 type LessonFormData = z.infer<typeof lessonSchema>;
@@ -99,13 +109,14 @@ export const LessonManagement = () => {
     setValue,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<LessonFormData>({
+  } = useForm({
     resolver: zodResolver(lessonSchema),
   });
 
   const createLessonMutation = useCreateAdminLesson();
   const updateLessonMutation = useUpdateAdminLesson();
   const deleteLessonMutation = useDeleteAdminLesson();
+  const regenerateContentMutation = useRegenerateAdminLessonContent();
 
   const filteredLessons =
     lessons?.filter(
@@ -118,7 +129,7 @@ export const LessonManagement = () => {
     try {
       await createLessonMutation.mutateAsync({
         subjectId: data.subject_id,
-        lessonData: { title: data.title, content: data.content },
+        lessonData: { title: data.title, language: data.language },
       });
       setIsCreateModalOpen(false);
     } catch (error) {
@@ -145,6 +156,7 @@ export const LessonManagement = () => {
           title: data.title,
           content: data.content,
           subject_id: data.subject_id,
+          language: data.language,
           status: data.status,
         },
       });
@@ -165,6 +177,20 @@ export const LessonManagement = () => {
     }
   };
 
+  const handleRegenerateContent = async (lessonId: string) => {
+    if (
+      window.confirm(
+        "Are you sure you want to regenerate content for this lesson?"
+      )
+    ) {
+      try {
+        await regenerateContentMutation.mutateAsync(lessonId);
+      } catch (error) {
+        console.error("Failed to regenerate lesson content:", error);
+      }
+    }
+  };
+
   // Reset form when modals open/close
   useEffect(() => {
     if (isCreateModalOpen) {
@@ -172,7 +198,7 @@ export const LessonManagement = () => {
         title: "",
         content: "",
         subject_id: subjects?.[0]?.id || "",
-        status: "DR",
+        status: "draft",
       });
     }
   }, [isCreateModalOpen, subjects, reset]);
@@ -289,16 +315,30 @@ export const LessonManagement = () => {
               </div>
 
               <div>
-                <Label htmlFor="content">Lesson Content</Label>
-                <Textarea
-                  id="content"
-                  {...register("content")}
-                  placeholder="Detailed lesson content, objectives, and materials..."
-                  rows={6}
+                <Label htmlFor="language">Language</Label>
+                <Controller
+                  name="language"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="English">English</SelectItem>
+                        <SelectItem value="Pashto">Pashto</SelectItem>
+                        <SelectItem value="Urdu">Urdu</SelectItem>
+                        <SelectItem value="French">French</SelectItem>
+                        <SelectItem value="Arabic">Arabic</SelectItem>
+                        <SelectItem value="Spanish">Spanish</SelectItem>
+                        <SelectItem value="Persian">Farsi</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
-                {errors.content && (
+                {errors.language && (
                   <p className="text-sm text-destructive mt-1">
-                    {errors.content.message}
+                    {errors.language.message}
                   </p>
                 )}
               </div>
@@ -410,8 +450,10 @@ export const LessonManagement = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DR">Draft</SelectItem>
-                      <SelectItem value="VE">Verified</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="verified">Verified</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -491,6 +533,7 @@ export const LessonManagement = () => {
               <TableRow>
                 <TableHead>Lesson</TableHead>
                 <TableHead>Subject</TableHead>
+                <TableHead>Language</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -506,7 +549,7 @@ export const LessonManagement = () => {
                         {lesson.title}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {lesson.content.length > 80
+                        {lesson.content && lesson.content.length > 80
                           ? `${lesson.content.substring(0, 80)}...`
                           : lesson.content}
                       </div>
@@ -519,13 +562,28 @@ export const LessonManagement = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <Badge variant="outline">
+                      {lesson.language }
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center">
-                      {lesson.status === "VE" ? (
+                      {lesson.status === "verified" ? (
                         <>
                           <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
                           <Badge variant="default">Verified</Badge>
                         </>
                       ) : (
+                        // ) : lesson.status === "pending" ? (
+                        //   <>
+                        //     <Clock className="w-4 h-4 mr-1 text-blue-500" />
+                        //     <Badge variant="secondary">Pending</Badge>
+                        //   </>
+                        // ) : lesson.status === "failed" ? (
+                        //   <>
+                        //     <XCircle className="w-4 h-4 mr-1 text-red-500" />
+                        //     <Badge variant="destructive">Failed</Badge>
+                        //   </>
                         <>
                           <Clock className="w-4 h-4 mr-1 text-yellow-500" />
                           <Badge variant="secondary">Draft</Badge>
@@ -540,6 +598,14 @@ export const LessonManagement = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRegenerateContent(lesson.id)}
+                        disabled={regenerateContentMutation.isPending}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

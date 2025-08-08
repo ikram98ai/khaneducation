@@ -261,6 +261,10 @@ export const adminAPI = {
     return response.data;
   },
 
+  regenerateAdminLessonContent: async (lessonId: string): Promise<void> => {
+    await api.post(`/admin/lessons/${lessonId}/regenerate-content/`);
+  },
+
   // Admin Practice Task Management
   createAdminPracticeTask: async (lessonId: string, taskData: { content: string; difficulty: "EA" | "ME" | "HA" }): Promise<PracticeTask> => {
     const response = await api.post(`/admin/lessons/${lessonId}/practice_tasks/`, taskData);

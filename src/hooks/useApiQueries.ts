@@ -509,18 +509,44 @@ export const useCreateAdminLesson = () => {
       lessonData,
     }: {
       subjectId: string;
-      lessonData: Partial<Lesson>;
+      lessonData: { title: string; language: "Arabic" | "English" | "Pashto" | "Persian" | "Urdu" };
     }) => adminAPI.createAdminLesson(subjectId, lessonData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
       toast({
-        title: "Lesson Created",
-        description: "New lesson has been created successfully.",
+        title: "Lesson Creation Initiated",
+        description: "New lesson is being created in the background.",
       });
     },
     onError: (error: AxiosError) => {
       toast({
         title: "Failed to Create Lesson",
+        description:
+          (error.response?.data as { detail: string })?.detail ||
+          "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useRegenerateAdminLessonContent = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (lessonId: string) =>
+      adminAPI.regenerateAdminLessonContent(lessonId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-lessons"] });
+      toast({
+        title: "Content Regeneration Started",
+        description: "Lesson content is being regenerated in the background.",
+      });
+    },
+    onError: (error: AxiosError) => {
+      toast({
+        title: "Failed to Regenerate Content",
         description:
           (error.response?.data as { detail: string })?.detail ||
           "An error occurred",
