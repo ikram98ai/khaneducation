@@ -104,6 +104,8 @@ async def create_lesson(
         id=new_lesson_id,
         instructor_id=instructor_id,
         title=title,
+        language= language_value,
+        content="Pending",
         status="pending",
         created_at=datetime.now(timezone.utc),
     )

@@ -163,6 +163,9 @@ def update_lesson(lesson_id: str, lesson: schemas.LessonCreate):
     db_lesson = crud.crud_lesson.get(hash_key=lesson_id)
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
+    lesson.instructor_id = db_lesson.instructor_id
+    lesson.status = db_lesson.status
+    
     return crud.crud_lesson.update(db_obj=db_lesson, obj_in_data=lesson.model_dump())
 
 
@@ -175,13 +178,14 @@ def delete_lesson(lesson_id: str):
 
 
 @router.put("/lessons/{lesson_id}/verify", response_model=schemas.Lesson)
-def verify_lesson(lesson_id: str):
+def verify_lesson(lesson_id: str, admin: schemas.User = Depends(get_current_admin)):
     lesson = crud.crud_lesson.get(hash_key=lesson_id)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
 
     lesson.status = schemas.LessonStatusEnum.VERIFIED.value
     lesson.verified_at = datetime.now(timezone.utc)
+    lesson.verified_by = admin.id
     lesson.save()
     return lesson
 
