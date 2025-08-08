@@ -129,9 +129,6 @@ def seed_db():
                 **lesson_data
             )
             lesson.save()
-        print(f"Created {subject.name} subject")
-        break
-
 
     print("Database seeded successfully.")
 

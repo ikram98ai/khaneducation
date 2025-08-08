@@ -46,6 +46,7 @@ class Lesson(LessonBase):
     subject_id: Optional[str] = None
     status: LessonStatusEnum
     created_at: datetime
+    order_in_subject:Optional[int] = None
     verified_at: Optional[datetime] = None
     progress: Optional[float] = 0.0
 
