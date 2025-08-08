@@ -43,7 +43,7 @@ def student_dashboard(
                     logger.warning(f"Subject with id {enrollment.subject_id} not found for student {current_student.user_id}")
                     continue
 
-                lessons = crud.crud_lesson.get_by_subject(subject_id=subject.id)
+                lessons = crud.crud_lesson.get_by_subject_and_language(subject_id=subject.id, language=current_student.language)
                 total_lessons = len(lessons)
                 
                 completed_lessons = 0
@@ -63,7 +63,6 @@ def student_dashboard(
                         name=subject.name,
                         description=subject.description,
                         grade_level=subject.grade_level,
-                        language=subject.language,
                         enrolled_at=enrollment.enrolled_at,
                         total_lessons=total_lessons,
                         completed_lessons=completed_lessons,

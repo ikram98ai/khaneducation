@@ -1,7 +1,7 @@
 import typer
 import json
-from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz
-from app.models import  QuizAttempt, StudentProgress, Notification, LessonRating, StudySession
+from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz, \
+                       QuizAttempt, StudentProgress, Notification, LessonRating, StudySession
 from app.utils import hash, is_strong_password
 
 app = typer.Typer()
@@ -100,18 +100,37 @@ def seed_db():
     with open("seed.json", "r") as f:
         data = json.load(f)
 
-    for subject_data in data.get("subjects", []):
-        subject = Subject(**subject_data)
-        subject.save()
+    # for user_data in data.get("users", []):
+    #     password = user_data.pop("password")
+    #     if not is_strong_password(password):
+    #         print(f"Password for user {user_data['username']} is not strong enough. Skipping.")
+    #         continue
+    #     user_data["password"] = hash(password)
+    #     user = User(**user_data)
+    #     user.save()
+    #     print(f"Created {user_data['username']} user account")
 
-    for user_data in data.get("users", []):
-        password = user_data.pop("password")
-        if not is_strong_password(password):
-            print(f"Password for user {user_data['username']} is not strong enough. Skipping.")
-            continue
-        user_data["password"] = hash(password)
-        user = User(**user_data)
-        user.save()
+    user = list(User.email_index.query("ikram98ai@edu.com"))[0]
+
+    for subject_data in data.get("subjects", []):
+        subject_info = {
+            "name": subject_data.get("name"),
+            "description": subject_data.get("description"),
+            "grade_level": subject_data.get("grade_level"),
+            "is_active": subject_data.get("is_active"),
+        }
+        subject = Subject(**subject_info)
+        subject.save()
+        for lesson_data in subject_data.get("lessons", []):
+            lesson = Lesson(
+                subject_id=subject.id,
+                instructor_id=user.id,
+                **lesson_data
+            )
+            lesson.save()
+        print(f"Created {subject.name} subject")
+        break
+
 
     print("Database seeded successfully.")
 

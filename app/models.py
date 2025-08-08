@@ -18,11 +18,9 @@ class UserRoleEnum(enum.Enum):
 
 
 class LanguageChoicesEnum(enum.Enum):
-    EN = "English"
-    FR = "French"
-    PS = "Pashto"
-    ES = "Spanish"
     AR = "Arabic"
+    EN = "English"
+    PS = "Pashto"
     FA = "Persian"
     UR = "Urdu"
 
@@ -137,7 +135,6 @@ class SubjectGradeLevelIndex(GlobalSecondaryIndex):
         projection = AllProjection()
 
     grade_level = NumberAttribute(hash_key=True)
-    language = UnicodeAttribute(range_key=True)
 
 class Subject(BaseModel):
     class Meta(BaseModel.Meta):
@@ -148,7 +145,6 @@ class Subject(BaseModel):
     name = UnicodeAttribute()
     description = UnicodeAttribute(null=True)
     grade_level = NumberAttribute()
-    language = UnicodeAttribute(default=LanguageChoicesEnum.EN.value)
     is_active = BooleanAttribute(default=True)
     prerequisites = ListAttribute(of=UnicodeAttribute, null=True)  # List of subject IDs
 
@@ -166,6 +162,16 @@ class LessonSubjectIndex(GlobalSecondaryIndex):
 
     subject_id = UnicodeAttribute(hash_key=True)
     id = UnicodeAttribute(range_key=True)  # Lesson ID as range key
+
+class LessonSubjectLanguageIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "subject-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+
+    subject_id = UnicodeAttribute(hash_key=True)
+    language = UnicodeAttribute(range_key=True)  # Lesson ID as range key
 
 
 class LessonInstructorIndex(GlobalSecondaryIndex):
@@ -199,6 +205,7 @@ class Lesson(BaseModel):
     subject_id = UnicodeAttribute()
     instructor_id = UnicodeAttribute()
     title = UnicodeAttribute()
+    language = UnicodeAttribute()
     content = UnicodeAttribute()
     summary = UnicodeAttribute(null=True)  # Brief lesson summary
     learning_objectives = ListAttribute(of=UnicodeAttribute, null=True)
@@ -212,6 +219,7 @@ class Lesson(BaseModel):
 
     # GSIs for efficient querying
     subject_index = LessonSubjectIndex()
+    subject_and_language_index = LessonSubjectLanguageIndex()
     instructor_index = LessonInstructorIndex()
     status_index = LessonStatusIndex()
 
@@ -339,7 +347,7 @@ class Quiz(BaseModel):
     lesson_id = UnicodeAttribute()
     lesson_title = UnicodeAttribute()
     description = UnicodeAttribute(null=True)
-    version_number = NumberAttribute(default=1)
+    quiz_version = NumberAttribute(default=1)
     time_limit_minutes = NumberAttribute(null=True)
     passing_score = NumberAttribute(default=70)  # Percentage
     max_attempts = NumberAttribute(default=3)

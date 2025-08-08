@@ -47,7 +47,7 @@ def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_stude
                 return None
 
         # If no successful attempt, load the quiz
-        quiz = sorted(quizzes, key=lambda q: q.version_number, reverse=True)[0]
+        quiz = sorted(quizzes, key=lambda q: q.quiz_version, reverse=True)[0]
         lesson = crud.crud_lesson.get(hash_key=lesson_id)
         quiz.lesson_title = lesson.title if lesson else None
         return quiz

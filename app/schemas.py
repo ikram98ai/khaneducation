@@ -37,7 +37,6 @@ class SubjectBase(BaseModel):
     name: str = Field(..., max_length=100)
     description: Optional[str] = None
     grade_level: int = Field(..., ge=1, le=12)
-    language: LanguageChoicesEnum = LanguageChoicesEnum.EN
 
 
 class SubjectCreate(SubjectBase):
@@ -60,6 +59,7 @@ class SubjectDetail(Subject):
 
 class LessonBase(BaseModel):
     title: str = Field(..., max_length=255)
+    language: str
     content: Optional[str] = None
 
 

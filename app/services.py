@@ -45,7 +45,7 @@ async def create_lesson_with_content(subject_id: str, subject:str, grade_level:i
             tasks.append(task)
 
         new_quiz_id = str(uuid.uuid4())
-        db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, lesson_title=title, version_number=1, ai_generated=True, created_at=datetime.now(timezone.utc))
+        db_quiz = Quiz(id=new_quiz_id, lesson_id=new_lesson_id, lesson_title=title, quiz_version=1, ai_generated=True, created_at=datetime.now(timezone.utc))
 
         quiz_questions = await ai.generate_quiz_questions(
             lesson_content=lesson_content,
@@ -145,7 +145,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
                     student = crud.crud_student.get_by_user_id(student_id) 
                     if student:
                         quizzes_for_lesson = list(Quiz.lesson_index.query(lesson.id))
-                        max_version = max((q.version_number for q in quizzes_for_lesson))
+                        max_version = max((q.quiz_version for q in quizzes_for_lesson))
                         print("Max version found:", max_version)
                         new_version = max_version + 1
                         new_quiz_questions = ai.generate_quiz_questions(
@@ -155,7 +155,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
                         )
                         # Create new quiz
                         new_quiz_id_2 = str(uuid.uuid4())
-                        new_quiz = Quiz(id=new_quiz_id_2, lesson_id=lesson.id, lesson_title= lesson.title,version_number=new_version, ai_generated=True, created_at=datetime.now(timezone.utc))
+                        new_quiz = Quiz(id=new_quiz_id_2, lesson_id=lesson.id, lesson_title= lesson.title,quiz_version=new_version, ai_generated=True, created_at=datetime.now(timezone.utc))
                         
                         # Create new questions
                         for question_data in new_quiz_questions:
@@ -187,7 +187,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
             end_time=db_attempt.end_time,
             score=db_attempt.score,
             passed=db_attempt.passed,
-            quiz_version=quiz.version_number,
+            quiz_version=quiz.quiz_version,
             cheating_detected=db_attempt.cheating_detected,
             lesson_title=lesson.title if lesson else ""
         )
@@ -210,7 +210,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
             regenerated_quiz_schema = schemas.Quiz(
                 id=regenerated_quiz.id,
                 lesson_id=regenerated_quiz.lesson_id,
-                version_number=regenerated_quiz.version_number,
+                quiz_version=regenerated_quiz.quiz_version,
                 ai_generated=regenerated_quiz.ai_generated,
                 created_at=regenerated_quiz.created_at,
                 lesson_title=regenerated_quiz.lesson_title,
@@ -229,7 +229,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
 
 def get_student_dashboard_stats(student_id: str) -> schemas.DashboardStats:
     # --- Completed Lessons ---
-    passed_attempts = list(QuizAttempt.scan((QuizAttempt.student_id == student_id) & (QuizAttempt.passed == True)))
+    passed_attempts = list(QuizAttempt.scan((QuizAttempt.student_id == student_id) & (QuizAttempt.passed)))
     completed_lesson_ids = set()
     for attempt in passed_attempts:
         try:

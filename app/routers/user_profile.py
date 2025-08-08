@@ -3,8 +3,6 @@ from ..models import User, Student
 from .. import schemas, utils, crud
 from ..dependencies import get_current_user
 import logging
-from pynamodb.transactions import TransactWrite
-from pynamodb.connection import Connection
 import enum
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -109,9 +107,8 @@ def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(
         new_student.save()
 
         try:
-            matching_subjects = crud.crud_subject.get_by_grade_and_language(
+            matching_subjects = crud.crud_subject.get_by_grade(
                 grade_level=profile_data.current_grade, 
-                language=profile_data.language.value
             )
 
             for subject in matching_subjects:

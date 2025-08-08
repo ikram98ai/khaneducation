@@ -37,9 +37,9 @@ class CRUDUser(CRUDBase[User]):
             raise HTTPException(status_code=500, detail="Database error")
 
 class CRUDSubject(CRUDBase[Subject]):
-    def get_by_grade_and_language(self, grade_level: int, language: str) -> List[Subject]:
+    def get_by_grade(self, grade_level: int) -> List[Subject]:
         try:
-            return list(self.model.grade_level_index.query(grade_level, Subject.language == language))
+            return list(self.model.grade_level_index.query(grade_level))
         except Exception as e:
             logger.error(f"Error fetching subjects by grade and language: {e}")
             raise HTTPException(status_code=500, detail="Database error")
@@ -48,6 +48,13 @@ class CRUDLesson(CRUDBase[Lesson]):
     def get_by_subject(self, subject_id: str) -> List[Lesson]:
         try:
             return list(self.model.subject_index.query(subject_id))
+        except Exception as e:
+            logger.error(f"Error fetching lessons for subject {subject_id}: {e}")
+            raise HTTPException(status_code=500, detail="Database error")
+
+    def get_by_subject_and_language(self, subject_id: str, language:str) -> List[Lesson]:
+        try:
+            return list(self.model.subject_and_language_index.query(subject_id,language))
         except Exception as e:
             logger.error(f"Error fetching lessons for subject {subject_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
@@ -68,9 +75,9 @@ class CRUDStudent(CRUDBase[Student]):
             logger.error(f"Error fetching student by user_id {user_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-    def get_by_grade_and_language(self, grade_level: int, language: str) -> List[Student]:
+    def get_by_grade(self, grade_level: int) -> List[Student]:
         try:
-            return list(self.model.grade_language_index.query(grade_level, Student.language == language))
+            return list(self.model.grade_language_index.query(grade_level))
         except Exception as e:
             logger.error(f"Error fetching students by grade and language: {e}")
             raise HTTPException(status_code=500, detail="Database error")
@@ -96,18 +103,13 @@ class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
         for attempt in attempts:
             try:
                 quiz = Quiz.get(attempt.quiz_id)
-                attempt.quiz_version = quiz.version_number
-                
-                lesson = Lesson.get(quiz.lesson_id)
-                attempt.lesson_title = lesson.title
+                attempt.quiz_version = quiz.quiz_version            
+                attempt.lesson_title = quiz.lesson_title
             except Quiz.DoesNotExist:
                 logger.warning(f"Quiz with id {attempt.quiz_id} not found for attempt {attempt.id}")
                 attempt.quiz_version = 0  # Or some default value
                 attempt.lesson_title = "Unknown Lesson"
-            except Lesson.DoesNotExist:
-                logger.warning(f"Lesson not found for quiz {attempt.quiz_id}")
-                attempt.lesson_title = "Unknown Lesson"
-
+                
         return attempts
     
     def get_by_student(self, student_id: str) -> List[QuizAttempt]:
