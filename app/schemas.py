@@ -18,7 +18,7 @@ class Subject(SubjectBase):
     id: str
     total_lessons: Optional[int] = None
     completed_lessons: Optional[int] = None
-    progress: Optional[float] = None
+    progress: Optional[float] = 0.0
 
     class Config:
         from_attributes = True

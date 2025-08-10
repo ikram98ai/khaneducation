@@ -120,10 +120,12 @@ class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-    def get_by_student_and_quiz(self, student_id: str, quiz_id: str) -> List[QuizAttempt]:
+    def get_by_student_and_quiz(self, student_id: str, quiz_id: str, extra=True) -> List[QuizAttempt]:
         try:
             attempts = list(self.model.student_quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id))
-            return self.attempts_with_quiz_version_and_lesson_title(attempts)
+            if extra:
+                return self.attempts_with_quiz_version_and_lesson_title(attempts)
+            return attempts
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id} and quiz {quiz_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")

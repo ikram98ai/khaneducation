@@ -24,32 +24,16 @@ def get_subjects(limit: int = 100):
 
 
 @router.get("/{subject_id}/", response_model=schemas.SubjectDetail)
-def get_subject(subject_id: str, current_student: models.Student = Depends(get_current_student)):
+def get_subject(subject_id: str):
     subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-
-    lessons = crud.crud_lesson.get_by_subject(subject_id=subject.id)
-    total_lessons = len(lessons)
-
-    completed_lessons_count = 0
-
-    for lesson in lessons:
-        quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson.id)
-        for quiz in quizzes:
-            lesson_quiz_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=current_student.user_id, quiz_id=quiz.id)
-            if any(attempt.passed for attempt in lesson_quiz_attempts):
-                completed_lessons_count += 1
-                break
-
+    
     return schemas.SubjectDetail(
         id=subject.id,
         name=subject.name,
         description=subject.description,
         grade_level=subject.grade_level,
-        total_lessons=total_lessons,
-        completed_lessons=completed_lessons_count,
-        progress=(completed_lessons_count / total_lessons) * 100 if total_lessons > 0 else 0,
     )
 
 
@@ -60,6 +44,18 @@ def get_subject_details(subject_id: str, current_student: models.Student = Depen
         raise HTTPException(status_code=404, detail="Subject not found")
 
     lessons = crud.crud_lesson.get_by_subject_and_language(subject_id=subject.id, language=current_student.language)
+    if not lessons:
+        return schemas.SubjectDetail(
+            id=subject.id,
+            name=subject.name,
+            description=subject.description,
+            grade_level=subject.grade_level,
+            total_lessons=0,
+            completed_lessons=0,
+            progress= 0.0,
+            lessons=[],
+        )
+
     total_lessons = len(lessons)
 
     completed_lessons_count = 0
@@ -69,7 +65,7 @@ def get_subject_details(subject_id: str, current_student: models.Student = Depen
         quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson.id)
         lesson_progress = 0.0
         for quiz in quizzes:
-            lesson_quiz_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=current_student.user_id, quiz_id=quiz.id)
+            lesson_quiz_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=current_student.user_id, quiz_id=quiz.id, extra=False)
             if any(attempt.passed for attempt in lesson_quiz_attempts):
                 lesson_progress = 100.0
                 completed_lessons_count += 1
