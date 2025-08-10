@@ -156,8 +156,8 @@ export const AdminDashboard = () => {
                     <div>
                       <p className="font-medium">{lesson.title}</p>
                       <div className="text-sm text-muted-foreground">
-                        Status: <Badge variant={lesson.status === 'VE' ? 'default' : 'secondary'}>
-                          {lesson.status === 'VE' ? 'Verified' : 'Draft'}
+                        Status: <Badge variant={lesson.status === 'verified' ? 'default' : 'secondary'}>
+                          {lesson.status === 'verified' ? 'Verified' : 'Draft'}
                         </Badge>
                       </div>
                     </div>

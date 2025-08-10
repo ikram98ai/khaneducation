@@ -8,22 +8,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  useQuizAttempts,
-  usePracticeTasks,
-  useSubject,
-  useLesson,
-} from "@/hooks/useApiQueries";
-import { useNavigate, useParams } from "react-router-dom";
+import { useSubject, useLesson } from "@/hooks/useApiQueries";
+import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { AIAssistant } from "../learning/AIAssistant";
 import MarkdownViewer from "../mdviewer/MarkdownViewer";
 import { Badge } from "../ui/badge";
+import { QuizAttempts } from "./QuizAttempts";
+import { LessonTasks } from "./LessonTasks";
 
 export const LessonDetail = () => {
-  const navigate = useNavigate();
   const { subjectId, lessonId } = useParams();
 
   const {
@@ -42,21 +38,6 @@ export const LessonDetail = () => {
   const onBack = () => {
     window.history.back();
   };
-
-  const startQuiz = () => {
-    navigate(`/lessons/${lessonId}/quiz/`, { replace: true });
-  };
-
-  const {
-    data: quizAttempts,
-    isLoading: isAttemptsLoading,
-    isError: isAttemptsError,
-  } = useQuizAttempts(lesson?.id);
-  const {
-    data: practiceTasks = [],
-    isLoading: isTasksLoading,
-    isError: isTasksError,
-  } = usePracticeTasks(lesson?.id);
 
   if (isSubjectLoading || isLessonLoading) {
     return (
@@ -136,110 +117,12 @@ export const LessonDetail = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="practice" className="mt-6">
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold">Practice Problems</h2>
-              {isTasksLoading ? (
-                <p>Loading practice problems...</p>
-              ) : isTasksError ? (
-                <p>Error loading practice problems.</p>
-              ) : (
-                practiceTasks.map((task, index) => (
-                  <Card key={task.id} className="shadow-soft text-wrap">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">
-                          Problem {index + 1}
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="text-wrap">
-                      <MarkdownViewer markdown={task.content} />
-                      <details className="cursor-pointer">
-                        <summary className="text-primary hover:underline">
-                          Show Solution
-                        </summary>
-                        <div className="mt-2 p-3 bg-muted/50 rounded">
-                          <strong>Solution:</strong> {task.solution}
-                        </div>
-                      </details>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
+            <LessonTasks lessonId={lessonId} />
           </TabsContent>
 
           <TabsContent value="quiz" className="mt-6">
-            {quizAttempts &&
-            quizAttempts.some((attempt, index) => attempt.passed === true) ? (
-              <></>
-            ) : (
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle>Knowledge Check Quiz</CardTitle>
-                  <CardDescription>
-                    Test your understanding of the lesson content.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="gradient"
-                    onClick={startQuiz}
-                    size="lg"
-                    className="w-full"
-                  >
-                    Start New Quiz
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="mt-8">
-              <h3 className="text-lg font-bold mb-4">Your Quiz History</h3>
-              {isAttemptsLoading ? (
-                <p>Loading history...</p>
-              ) : isAttemptsError ? (
-                <p>Could not load history.</p>
-              ) : quizAttempts && quizAttempts.length > 0 ? (
-                <div className="space-y-4">
-                  {quizAttempts.map((attempt) => (
-                    <Card key={attempt.id} className="shadow-soft">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">
-                            Quiz Attempt on{" "}
-                            {new Date(attempt.start_time).toLocaleString()}
-                          </p>
-
-                          <p className="text-sm">
-                            Quiz Version • {attempt.quiz_version}
-                          </p>
-                          <p
-                            className={`text-sm ${
-                              attempt.passed ? "text-green-500" : "text-red-500"
-                            }`}
-                          >
-                            {attempt.passed ? "Passed" : "Failed"} • Score:{" "}
-                            {attempt.score}%
-                          </p>
-                          <p className="text-sm">
-                           <span className="font-bold">AI Feedback: </span>{attempt.ai_feedback}
-                          </p>
-
-                        </div>
-                        <Button variant="outline" size="sm">
-                          Review
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <p>You haven't attempted any quizzes for this lesson yet.</p>
-              )}
-            </div>
+            <QuizAttempts lessonId={lessonId} />
           </TabsContent>
         </Tabs>
       </div>
