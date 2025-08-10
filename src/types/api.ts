@@ -98,6 +98,7 @@ export interface QuizAttempt {
   end_time: string;
   score: number;
   passed: boolean;
+  ai_feedback?:string;
   cheating_detected: boolean;
 }
 

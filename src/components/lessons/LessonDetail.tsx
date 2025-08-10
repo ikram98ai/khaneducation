@@ -172,24 +172,29 @@ export const LessonDetail = () => {
           </TabsContent>
 
           <TabsContent value="quiz" className="mt-6">
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle>Knowledge Check Quiz</CardTitle>
-                <CardDescription>
-                  Test your understanding of the lesson content.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="gradient"
-                  onClick={startQuiz}
-                  size="lg"
-                  className="w-full"
-                >
-                  Start New Quiz
-                </Button>
-              </CardContent>
-            </Card>
+            {quizAttempts &&
+            quizAttempts.some((attempt, index) => attempt.passed === true) ? (
+              <></>
+            ) : (
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle>Knowledge Check Quiz</CardTitle>
+                  <CardDescription>
+                    Test your understanding of the lesson content.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="gradient"
+                    onClick={startQuiz}
+                    size="lg"
+                    className="w-full"
+                  >
+                    Start New Quiz
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="mt-8">
               <h3 className="text-lg font-bold mb-4">Your Quiz History</h3>
@@ -219,6 +224,10 @@ export const LessonDetail = () => {
                             {attempt.passed ? "Passed" : "Failed"} • Score:{" "}
                             {attempt.score}%
                           </p>
+                          <p className="text-sm">
+                           <span className="font-bold">AI Feedback: </span>{attempt.ai_feedback}
+                          </p>
+
                         </div>
                         <Button variant="outline" size="sm">
                           Review

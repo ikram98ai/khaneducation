@@ -224,6 +224,9 @@ export const Dashboard = () => {
                           {formatDistanceToNow(new Date(activity.start_time))}{" "}
                           ago
                         </p>
+                       <p className="text-sm">
+                           <span className="font-bold">AI Feedback: </span>{activity.ai_feedback}
+                       </p>
                       </div>
                       <Badge
                         variant={
