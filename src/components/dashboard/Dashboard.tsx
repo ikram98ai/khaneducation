@@ -2,10 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import {
-  useStudentDashboard,
-  useStudentDashboardStatistics,
-} from "@/hooks/useApiQueries";
+import { useStudentDashboard } from "@/hooks/useApiQueries";
 import { Link } from "react-router-dom";
 import { Navbar } from "../navigation/Navbar";
 import { formatDistanceToNow } from "date-fns";
@@ -13,13 +10,8 @@ import { Skeleton } from "../ui/skeleton";
 
 export const Dashboard = () => {
   const { data: dashboardData, isLoading, error } = useStudentDashboard();
-  const {
-    data: statistics,
-    isLoading: statsLoading,
-    error: statsError,
-  } = useStudentDashboardStatistics();
 
-  if (isLoading || statsLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6">
         <Skeleton className="h-10 w-48 mb-8" />
@@ -33,14 +25,17 @@ export const Dashboard = () => {
     );
   }
 
-  if (error || statsError) {
+  if (error) {
     return <div>Error loading dashboard data.</div>;
   }
 
-  const { enrollments: enrolledSubjects, recent_attempts: recentAttempts } =
-    dashboardData;
+  const {
+    enrollments: enrolledSubjects,
+    recent_attempts: recentAttempts,
+    stats,
+  } = dashboardData;
 
-  const { completed_lessons, total_lessons, avg_score, streak } = statistics;
+  const { completed_lessons, total_lessons, avg_score, streak } = stats;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5">
@@ -62,8 +57,7 @@ export const Dashboard = () => {
                     Progress
                   </p>
                   <p className="text-lg font-bold md:text-2xl">
-                    {Math.round((completed_lessons / total_lessons) * 100) ||
-                      0}
+                    {Math.round((completed_lessons / total_lessons) * 100) || 0}
                     %
                   </p>
                 </div>
@@ -224,9 +218,10 @@ export const Dashboard = () => {
                           {formatDistanceToNow(new Date(activity.start_time))}{" "}
                           ago
                         </p>
-                       <p className="text-sm">
-                           <span className="font-bold">AI Feedback: </span>{activity.ai_feedback}
-                       </p>
+                        <p className="text-sm">
+                          <span className="font-bold">AI Feedback: </span>
+                          {activity.ai_feedback}
+                        </p>
                       </div>
                       <Badge
                         variant={

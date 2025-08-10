@@ -112,9 +112,17 @@ export interface QuizSubmission {
   responses: QuizResponse[];
 }
 
+export interface StudentDashboardStats {
+  completed_lessons: number;
+  total_lessons: number;
+  avg_score: number;
+  streak: number;
+}
+
 export interface StudentDashboard {
   enrollments: Enrollment[];
   recent_attempts: QuizAttempt[];
+  stats: StudentDashboardStats
 }
 
 export interface AdminDashboard {
@@ -138,11 +146,4 @@ export interface AIAssistRequest {
 
 export interface AIAssistResponse {
   ai_response: string;
-}
-
-export interface StudentDashboardStats {
-  completed_lessons: number;
-  total_lessons: number;
-  avg_score: number;
-  streak: number;
 }

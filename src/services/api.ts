@@ -175,11 +175,6 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
   return response.data;
 }
 
-export const getStudentDashboardStatistics =
-  async (): Promise<StudentDashboardStats> => {
-    const { data } = await api.get(`/dashboard/student/stats/`);
-    return data;
-  };
 
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   const response = await api.get("/dashboard/admin/");

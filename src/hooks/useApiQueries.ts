@@ -17,7 +17,6 @@ import {
   getStudentDashboard,
   getLanguages,
   getAiAssistance,
-  getStudentDashboardStatistics,
   getAdminDashboard,
   adminAPI,
   getSubjectDetail,
@@ -262,16 +261,6 @@ export const useAiAssistance = () => {
   });
 };
 
-export const useStudentDashboardStatistics = () => {
-  const { isAuthenticated } = useAuthStore();
-
-  return useQuery({
-    queryKey: ["student-dashboard-statistics"],
-    queryFn: getStudentDashboardStatistics,
-    enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
 
 // Admin hooks with comprehensive error handling
 export const useAdminUsers = (params?: { skip?: number; limit?: number }) => {
