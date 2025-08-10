@@ -313,12 +313,10 @@ class PracticeTask(BaseModel):
     lesson_id = UnicodeAttribute(range_key=True)
     lesson_title = UnicodeAttribute()
     content = UnicodeAttribute()
+    solution = UnicodeAttribute()
     instructions = UnicodeAttribute(null=True)
     difficulty = UnicodeAttribute(default=DifficultyLevelEnum.MEDIUM.value)
-    estimated_time_minutes = NumberAttribute(null=True)
     ai_generated = BooleanAttribute(default=True)
-    points_possible = NumberAttribute(default=10)
-    is_active = BooleanAttribute(default=True)
     lesson_index = PracticeTaskByLessonIndex()
 
 
@@ -350,9 +348,6 @@ class Quiz(BaseModel):
     lesson_title = UnicodeAttribute()
     description = UnicodeAttribute(null=True)
     quiz_version = NumberAttribute(default=1)
-    time_limit_minutes = NumberAttribute(null=True)
-    passing_score = NumberAttribute(default=70)  # Percentage
-    max_attempts = NumberAttribute(default=3)
     ai_generated = BooleanAttribute(default=True)
     is_active = BooleanAttribute(default=True)
 
@@ -374,13 +369,6 @@ class Quiz(BaseModel):
 
         self.quiz_questions.append(question)
 
-    @property
-    def total_points(self) -> int:
-        """Calculate total points for the quiz"""
-        if not self.quiz_questions:
-            return 0
-        return sum(q.points for q in self.quiz_questions)
-
 
 class QuizResponseAttribute(MapAttribute):
     question_id = UnicodeAttribute()
@@ -389,9 +377,9 @@ class QuizResponseAttribute(MapAttribute):
     points_earned = NumberAttribute(default=0)
     
     # Local Secondary Index (LSI) for quiz_id
-class QuizIdLSI(GlobalSecondaryIndex):
+class StudentQuizIdLSI(GlobalSecondaryIndex):
     class Meta:
-        index_name = "quiz-id-lsi"
+        index_name = "student-quiz-id-lsi"
         projection = AllProjection()
         read_capacity_units = 1
         write_capacity_units = 1
@@ -408,6 +396,7 @@ class QuizAttemptByStudentIdGSI(GlobalSecondaryIndex):
 
     student_id = UnicodeAttribute(hash_key=True)
 
+QUIZ_PASSING_SCORE = 70
 class QuizAttempt(BaseModel):
     class Meta(BaseModel.Meta):
         table_name = "khaneducation_quiz_attempts"
@@ -419,18 +408,18 @@ class QuizAttempt(BaseModel):
     attempt_number = NumberAttribute()  # Track attempt count
     start_time = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
     end_time = UTCDateTimeAttribute(null=True)
+    ai_feedback = UnicodeAttribute(null=True)
     score = NumberAttribute(null=True)
-    percentage_score = NumberAttribute(null=True)
     passed = BooleanAttribute(default=False)
     cheating_detected = BooleanAttribute(default=False)
     time_taken_minutes = NumberAttribute(null=True)
 
     # Use proper list attribute for responses
     responses = ListAttribute(of=QuizResponseAttribute, null=True)
-    quiz_id_lsi = QuizIdLSI()
+    student_quiz_id_lsi = StudentQuizIdLSI()
     student_index = QuizAttemptByStudentIdGSI()
     
-    def add_response(self, question_id: str, student_answer: str, is_correct: bool, points_earned: int = 0):
+    def add_response(self, question_id: str, student_answer: str, is_correct: bool):
         """Add a response to the quiz attempt"""
         if not self.responses:
             self.responses = []
@@ -439,7 +428,6 @@ class QuizAttempt(BaseModel):
         response.question_id = question_id
         response.student_answer = student_answer
         response.is_correct = is_correct
-        response.points_earned = points_earned
 
         self.responses.append(response)
 
@@ -447,20 +435,16 @@ class QuizAttempt(BaseModel):
         """Calculate the total score and percentage"""
         if not self.responses:
             self.score = 0
-            self.percentage_score = 0
             return
 
-        total_points = sum(r.points_earned for r in self.responses)
-        self.score = total_points
-
-        # Get quiz to calculate percentage
-        try:
-            quiz = Quiz.get(self.quiz_id)
-            if quiz.total_points > 0:
-                self.percentage_score = round((total_points / quiz.total_points) * 100, 2)
-                self.passed = self.percentage_score >= quiz.passing_score
-        except Quiz.DoesNotExist:
-            self.percentage_score = 0
+         # Get quiz to calculate percentage
+        total_correct = sum([int(r.is_correct) for r in self.responses])    
+        self.score = (total_correct/len(self.responses))*100        
+        
+        if self.score >= QUIZ_PASSING_SCORE:
+            self.passed = True 
+        else:
+            self.passed = False
 
     def finish_attempt(self):
         """Mark the attempt as finished"""

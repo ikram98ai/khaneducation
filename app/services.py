@@ -41,6 +41,7 @@ async def create_lesson_content(lesson_id: str, subject: str, grade_level: int, 
                 lesson_id=lesson_id,
                 lesson_title=title,
                 content=task.content,
+                solution=task.solution,
                 difficulty=task.difficulty,
                 ai_generated=True,
                 created_at=datetime.now(timezone.utc)
@@ -122,7 +123,7 @@ async def create_lesson(
 
     return db_lesson
 
-
+MAX_QUIZ_ATTEMPTS = 3
 async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[schemas.QuizResponse]) -> schemas.QuizSubmissionResponse:
     try:
         try:
@@ -134,7 +135,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
         previous_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id, quiz_id)
         attempt_number = len(previous_attempts) + 1
 
-        if quiz.max_attempts and attempt_number > quiz.max_attempts:
+        if attempt_number > MAX_QUIZ_ATTEMPTS:
             raise ValueError("Exceeded maximum number of attempts")
 
         new_attempt_id = str(uuid.uuid4())
@@ -173,10 +174,11 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
                 is_correct=is_correct,
                 points_earned= 1 if is_correct else 0,
             )
+        db_attempt.ai_feedback = ai_feedback
         db_attempt.calculate_score()
         db_attempt.save()  # Update the attempt record
 
-        # Generate AI feedback (no DB interaction here)
+        # Generate AI feedback
         ai_feedback = await ai.generate_quiz_feedback(student_answers=student_answers, correct_answers=correct_answers)
 
         # Regenerate quiz if needed
@@ -228,6 +230,7 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
             student_id=db_attempt.student_id,
             start_time=db_attempt.start_time,
             end_time=db_attempt.end_time,
+            ai_feedback=db_attempt.ai_feedback,
             score=db_attempt.score,
             passed=db_attempt.passed,
             quiz_version=quiz.quiz_version,

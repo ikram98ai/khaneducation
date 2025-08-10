@@ -122,7 +122,7 @@ class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
 
     def get_by_student_and_quiz(self, student_id: str, quiz_id: str) -> List[QuizAttempt]:
         try:
-            attempts = list(self.model.quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id))
+            attempts = list(self.model.student_quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id))
             return self.attempts_with_quiz_version_and_lesson_title(attempts)
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id} and quiz {quiz_id}: {e}")

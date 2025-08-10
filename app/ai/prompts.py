@@ -27,6 +27,6 @@ Each question should be in the format:
 }}
 """
 
-QUIZ_FEEDBACK_GENERATOR_PROMPT = """Provide step-by-step feedback for the student's quiz answers according to the following correct answers.
+QUIZ_FEEDBACK_GENERATOR_PROMPT = """Provide step-by-step three liner feedback for the student's quiz answers according to the following correct answers.
 Correct Answers: {correct_answers}
 """

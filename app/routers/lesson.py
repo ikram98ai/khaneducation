@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status,Response
 from typing import List, Optional
 import logging
 from .. import crud, schemas, models
@@ -38,13 +38,13 @@ def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_stude
     try:
         quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson_id)
         if not quizzes:
-            return None
+            return Response("Quiz is not found", status_code=404)
 
         # Check for successful quiz attempts for this lesson by the student
         for quiz in quizzes:
             successful_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=student.user_id, quiz_id=quiz.id)
             if any(attempt.passed for attempt in successful_attempts):
-                return None
+                return Response("The Quiz is completed")
 
         # If no successful attempt, load the quiz
         quiz = sorted(quizzes, key=lambda q: q.quiz_version, reverse=True)[0]

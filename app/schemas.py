@@ -80,6 +80,7 @@ class Enrollment(EnrollmentBase):
 class PracticeTaskBase(BaseModel):
     lesson_id: str
     content: str
+    solution: str
     difficulty: DifficultyLevelEnum = DifficultyLevelEnum.MEDIUM
 
 
