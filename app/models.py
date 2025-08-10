@@ -336,7 +336,6 @@ class QuizQuestionAttribute(MapAttribute):
     question_type = UnicodeAttribute()
     options = ListAttribute(of=UnicodeAttribute, null=True)
     correct_answer = UnicodeAttribute(null=True)
-    points = NumberAttribute(default=1)
 
 class Quiz(BaseModel):
     class Meta(BaseModel.Meta):
@@ -355,7 +354,7 @@ class Quiz(BaseModel):
     quiz_questions = ListAttribute(of=QuizQuestionAttribute, null=True)
     lesson_index = QuizByLessonIndex()
 
-    def add_question(self, question_text: str, question_type: str, options: List[str] = None, correct_answer: str = None, points: int = 1):
+    def add_question(self, question_text: str, question_type: str, options: List[str] = None, correct_answer: str = None):
         """Add a question to the quiz"""
         if not self.quiz_questions:
             self.quiz_questions = []
@@ -374,7 +373,6 @@ class QuizResponseAttribute(MapAttribute):
     question_id = UnicodeAttribute()
     student_answer = UnicodeAttribute()
     is_correct = BooleanAttribute()
-    points_earned = NumberAttribute(default=0)
     
     # Local Secondary Index (LSI) for quiz_id
 class StudentQuizIdLSI(GlobalSecondaryIndex):

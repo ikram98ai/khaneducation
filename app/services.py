@@ -167,19 +167,20 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
                 raise ValueError(f"Question with id {question_id} not found in quiz {quiz_id}")
 
             is_correct = answer.strip().lower() == question.correct_answer.strip().lower()
-
+            student_answers.append(answer)
+            correct_answers.append(question.correct_answer)
             db_attempt.add_response(
                 question_id=question_id,  # Link to question
                 student_answer=answer,
                 is_correct=is_correct,
-                points_earned= 1 if is_correct else 0,
             )
-        db_attempt.ai_feedback = ai_feedback
-        db_attempt.calculate_score()
-        db_attempt.save()  # Update the attempt record
 
         # Generate AI feedback
         ai_feedback = await ai.generate_quiz_feedback(student_answers=student_answers, correct_answers=correct_answers)
+        
+        db_attempt.ai_feedback = ai_feedback
+        db_attempt.calculate_score()
+        db_attempt.save()  # Update the attempt record
 
         # Regenerate quiz if needed
         regenerated_quiz = None
@@ -248,7 +249,6 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
                     question_type=q.question_type,
                     options=q.options,
                     correct_answer=q.correct_answer,
-                    points=q.points,
                 )
                 for q in regenerated_quiz.quiz_questions
             ]
@@ -303,7 +303,7 @@ def get_student_dashboard_stats(student_id: str) -> schemas.DashboardStats:
     if not all_attempts:
         avg_score = 0.0
     else:
-        total_score = sum(attempt.percentage_score for attempt in all_attempts if attempt.percentage_score is not None)
+        total_score = sum(attempt.score for attempt in all_attempts if attempt.score is not None)
         avg_score = total_score / len(all_attempts) if all_attempts else 0.0
 
     # --- Streak ---

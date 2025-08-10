@@ -103,7 +103,6 @@ class QuizQuestion(BaseModel):
     question_type: str
     options: List[str] = []
     correct_answer:Optional[str] = None
-    points: Optional[float] = 1.0
 
 class Quiz(QuizBase):
     id: str
@@ -125,7 +124,6 @@ class QuizResponse(BaseModel):
     question_id: str
     student_answer: str
     is_correct: Optional[bool] = None
-    points_earned: Optional[float] = 0
     
 class QuizAttempt(QuizAttemptBase):
     id: str
@@ -134,6 +132,7 @@ class QuizAttempt(QuizAttemptBase):
     end_time: Optional[datetime] = None
     score: Optional[float] = None
     passed: bool
+    ai_feedback: Optional[str] = None
     quiz_version: Optional[int] = None
     cheating_detected: bool
     responses: List[QuizResponse] = []
