@@ -3,13 +3,171 @@ from typing import List
 from fastapi import BackgroundTasks
 from . import schemas
 from .ai import generate_content as ai
-from .models import Lesson, PracticeTask, Quiz, QuizAttempt, Student
+from .models import Lesson, PracticeTask, Quiz, QuizAttempt, Student, Subject
 from pynamodb.transactions import TransactWrite
 from pynamodb.exceptions import TransactWriteError
 from pynamodb.connection import Connection
 from datetime import datetime, timezone
 import uuid
+from .utils import run_in_thread, chunked
+import asyncio
 from . import crud
+from collections import defaultdict
+
+
+async def get_subject_details_data(subject: Subject, student: Student) -> schemas.SubjectDetail:
+    # 0. get lessons (assume this is already a query on subject+language)
+    lessons = await run_in_thread(crud.crud_lesson.get_by_subject_and_language, subject.id, student.language)
+    if not lessons:
+        return schemas.SubjectDetail(
+            id=subject.id, name=subject.name, description=subject.description,
+            grade_level=subject.grade_level, total_lessons=0, completed_lessons=0,
+            progress=0.0, lessons=[]
+        )
+
+    lesson_ids = [lesson.id for lesson in lessons]
+    lesson_id_set = set(lesson_ids)
+
+    # 1. get student's attempts (query the GSI 'by_student_id' — only that student's attempts)
+    # Project only fields we need
+    attr_select = ['quiz_id', 'passed', 'end_time', 'score', 'lesson_id']  # include lesson_id if denormalized
+    all_attempts = await run_in_thread(
+        lambda: crud.crud_quiz_attempt.get_by_student(student.user_id,extra=False,attributes_to_get=attr_select)
+    )
+
+    # 2. filter passed attempts for quizzes that belong to this subject (two approaches)
+    passed_attempts = [a for a in all_attempts if getattr(a, 'passed', False)]
+
+    # If attempts have lesson_id stored, we can directly compute completed lessons
+    if passed_attempts and hasattr(passed_attempts[0], 'lesson_id') and passed_attempts[0].lesson_id:
+        completed_lesson_ids = {a.lesson_id for a in passed_attempts if a.lesson_id in lesson_id_set}
+    else:
+        # Need to map quiz_id -> lesson_id. Collect unique quiz ids and batch_get quizzes
+        passed_quiz_ids = {a.quiz_id for a in passed_attempts if getattr(a, 'quiz_id', None)}
+        completed_lesson_ids = set()
+        if passed_quiz_ids:
+            # batch_get in chunks to respect DynamoDB limits
+            for chunk in chunked(passed_quiz_ids):
+                quizzes = await run_in_thread(lambda: list(Quiz.batch_get(chunk, attributes_to_get=['id', 'lesson_id'])))
+                completed_lesson_ids.update(q.lesson_id for q in quizzes if q.lesson_id in lesson_id_set)
+
+    # 3. Build lessons_with_progress
+    lessons_with_progress = []
+    completed_set = completed_lesson_ids
+    for lesson in lessons:
+        lesson_schema = schemas.Lesson.model_validate(lesson)
+        lesson_schema.progress = 100.0 if lesson.id in completed_set else 0.0
+        lessons_with_progress.append(lesson_schema)
+
+    total_lessons = len(lessons)
+    completed_count = len(completed_set)
+    progress = (completed_count / total_lessons) * 100 if total_lessons else 0.0
+
+    return schemas.SubjectDetail(
+        id=subject.id, name=subject.name, description=subject.description,
+        grade_level=subject.grade_level, total_lessons=total_lessons,
+        completed_lessons=completed_count, progress=progress,
+        lessons=lessons_with_progress
+    )
+
+
+async def get_student_dashboard_data(student: Student) -> tuple[List[schemas.EnrolledSubject], schemas.DashboardStats]:
+    active_enrollments = student.get_active_enrollments()
+    enrolled_subject_ids = [e.subject_id for e in active_enrollments]
+    if not enrolled_subject_ids:
+        return [], schemas.DashboardStats(completed_lessons=0, total_lessons=0, avg_score=0, streak=0)
+
+    # 1. Batch get subjects (chunk if needed)
+    subjects = []
+    for chunk in chunked(enrolled_subject_ids):
+        subjects.extend(await run_in_thread(lambda: list(Subject.batch_get(chunk, attributes_to_get=['id','name','description','grade_level']))))
+    subject_map = {s.id: s for s in subjects}
+
+    # 2. Query lessons for each subject concurrently (assumes lesson.query or crud.get_by_subject is query)
+    async def fetch_lessons_for_subject(subject_id):
+        return await run_in_thread(lambda: crud.crud_lesson.get_by_subject_and_language(subject_id,student.language, attributes_to_get=['id','subject_id']))
+    tasks = [fetch_lessons_for_subject(sid) for sid in enrolled_subject_ids]
+    results = await asyncio.gather(*tasks)
+    all_lessons = [lesson for res in results for lesson in res]
+
+    # Map lessons by subject
+    lessons_by_subject = defaultdict(list)
+    for lesson in all_lessons:
+        lessons_by_subject[lesson.subject_id].append(lesson)
+
+    # 3. Get all attempts for student (query GSI)
+    attr_select = ['quiz_id', 'passed', 'end_time', 'score', 'lesson_id']
+    all_attempts = await run_in_thread(
+        lambda: crud.crud_quiz_attempt.get_by_student(student.user_id,extra=False,attributes_to_get=attr_select)
+)
+    passed_attempts = [a for a in all_attempts if getattr(a, 'passed', False)]
+
+    # 4. Determine completed lesson ids
+    if passed_attempts and hasattr(passed_attempts[0], 'lesson_id') and passed_attempts[0].lesson_id:
+        completed_lesson_ids = {a.lesson_id for a in passed_attempts}
+    else:
+        passed_quiz_ids = {a.quiz_id for a in passed_attempts if getattr(a, 'quiz_id', None)}
+        completed_lesson_ids = set()
+        for chunk in chunked(passed_quiz_ids):
+            quizzes = await run_in_thread(lambda: list(Quiz.batch_get(chunk, attributes_to_get=['id','lesson_id'])))
+            completed_lesson_ids.update(q.lesson_id for q in quizzes)
+
+    # 5. Build enrollments_data
+    enrollments_data = []
+    for enrollment in active_enrollments:
+        subject = subject_map.get(enrollment.subject_id)
+        if not subject:
+            continue
+        subject_lessons = lessons_by_subject.get(subject.id, [])
+        total = len(subject_lessons)
+        completed = sum(1 for l in subject_lessons if l.id in completed_lesson_ids)
+        progress = (completed / total) * 100 if total else 0.0
+
+        enrollments_data.append(
+            schemas.EnrolledSubject(
+                id=subject.id,
+                name=subject.name,
+                description=subject.description,
+                grade_level=subject.grade_level,
+                enrolled_at=enrollment.enrolled_at,
+                total_lessons=total,
+                completed_lessons=completed,
+                progress=progress
+            )
+        )
+
+    # 6. Dashboard stats
+    completed_lessons_total = len(completed_lesson_ids)
+    total_lessons = len(all_lessons)
+
+    scored_attempts = [a for a in all_attempts if getattr(a, 'score', None) is not None]
+    avg_score = (sum(a.score for a in scored_attempts) / len(scored_attempts)) if scored_attempts else 0.0
+
+    # Streak calculation — sort passed attempts by end_time and compute longest consecutive-day streak
+    streak = 0
+    if passed_attempts:
+        # extract unique dates of passed attempts
+        dates = sorted({a.end_time.date() for a in passed_attempts})
+        if dates:
+            longest = 1
+            current = 1
+            for i in range(1, len(dates)):
+                if (dates[i] - dates[i-1]).days == 1:
+                    current += 1
+                else:
+                    longest = max(longest, current)
+                    current = 1
+            longest = max(longest, current)
+            streak = longest
+
+    stats = schemas.DashboardStats(
+        completed_lessons=completed_lessons_total,
+        total_lessons=total_lessons,
+        avg_score=avg_score,
+        streak=streak
+    )
+    return enrollments_data, stats
+
 
 async def create_lesson_content(lesson_id: str, subject: str, grade_level: int, language_value: str, title: str):
     try:
@@ -273,62 +431,4 @@ async def submit_quiz_responses(quiz_id: str, student_id: str, responses: List[s
         raise
 
 
-def get_student_dashboard_stats(student_id: str) -> schemas.DashboardStats:
-    # --- Completed Lessons ---
-    passed_attempts = list(QuizAttempt.scan((QuizAttempt.student_id == student_id) & (QuizAttempt.passed==True)))
-    completed_lesson_ids = set()
-    for attempt in passed_attempts:
-        try:
-            quiz = Quiz.get(attempt.quiz_id)
-            completed_lesson_ids.add(quiz.lesson_id)
-        except Quiz.DoesNotExist:
-            continue
-    completed_lessons = len(completed_lesson_ids)
 
-    # --- Total Lessons ---
-    try:
-        student = crud.crud_student.get_by_user_id(student_id)
-        if student:
-            enrolled_subject_ids = [e.subject_id for e in student.get_active_enrollments()]
-            total_lessons = 0
-            for subject_id in enrolled_subject_ids:
-                total_lessons += Lesson.subject_and_language_index.count(subject_id,Lesson.language == student.language)
-        else:
-            total_lessons = 0
-    except Student.DoesNotExist:
-        total_lessons = 0
-
-    # --- Average Score ---
-    all_attempts = list(QuizAttempt.scan(QuizAttempt.student_id == student_id))
-    if not all_attempts:
-        avg_score = 0.0
-    else:
-        total_score = sum(attempt.score for attempt in all_attempts if attempt.score is not None)
-        avg_score = total_score / len(all_attempts) if all_attempts else 0.0
-
-    # --- Streak ---
-    passed_attempts.sort(key=lambda x: x.end_time, reverse=True)
-    if not passed_attempts:
-        streak = 0
-    else:
-        streak = 0
-        if passed_attempts:
-            dates = sorted(list(set(attempt.end_time.date() for attempt in passed_attempts)))
-            if dates:
-                longest_streak = 0
-                current_streak = 1
-                for i in range(1, len(dates)):
-                    if (dates[i] - dates[i-1]).days == 1:
-                        current_streak += 1
-                    else:
-                        longest_streak = max(longest_streak, current_streak)
-                        current_streak = 1
-                longest_streak = max(longest_streak, current_streak)
-                streak = longest_streak
-
-    return schemas.DashboardStats(
-        completed_lessons=completed_lessons,
-        total_lessons=total_lessons,
-        avg_score=avg_score,
-        streak=streak,
-    )

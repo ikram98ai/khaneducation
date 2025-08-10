@@ -177,6 +177,7 @@ class StudentResponse(StudentResponseBase):
 class StudentDashboard(BaseModel):
     enrollments: List[ EnrolledSubject]
     recent_attempts: List[QuizAttempt]
+    stats: DashboardStats
 
     class Config:
         from_attributes = True

@@ -52,9 +52,9 @@ class CRUDLesson(CRUDBase[Lesson]):
             logger.error(f"Error fetching lessons for subject {subject_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-    def get_by_subject_and_language(self, subject_id: str, language:str) -> List[Lesson]:
+    def get_by_subject_and_language(self, subject_id: str, language:str, attributes_to_get: List[str]=None) -> List[Lesson]:
         try:
-            return list(self.model.subject_and_language_index.query(subject_id,Lesson.language == language))
+            return list(self.model.subject_and_language_index.query(subject_id,Lesson.language == language, attributes_to_get=attributes_to_get))
         except Exception as e:
             logger.error(f"Error fetching lessons for subject {subject_id} and language {language}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
@@ -112,17 +112,19 @@ class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
                 
         return attempts
     
-    def get_by_student(self, student_id: str) -> List[QuizAttempt]:
+    def get_by_student(self, student_id: str, extra=True, attributes_to_get:List[str]=None) -> List[QuizAttempt]:
         try:
-            attempts = list(self.model.student_index.query(student_id))
-            return self.attempts_with_quiz_version_and_lesson_title(attempts)
+            attempts = list(self.model.student_index.query(student_id,attributes_to_get=attributes_to_get))
+            if extra:
+                return self.attempts_with_quiz_version_and_lesson_title(attempts)
+            return attempts
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-    def get_by_student_and_quiz(self, student_id: str, quiz_id: str, extra=True) -> List[QuizAttempt]:
+    def get_by_student_and_quiz(self, student_id: str, quiz_id: str, extra=True, attributes_to_get:List[str]=None) -> List[QuizAttempt]:
         try:
-            attempts = list(self.model.student_quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id))
+            attempts = list(self.model.student_quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id, attributes_to_get=attributes_to_get))
             if extra:
                 return self.attempts_with_quiz_version_and_lesson_title(attempts)
             return attempts

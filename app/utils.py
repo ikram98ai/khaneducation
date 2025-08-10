@@ -23,3 +23,21 @@ def is_strong_password(password: str) -> bool:
     ):
         return False
     return True
+
+
+import asyncio
+from itertools import islice
+from typing import Iterable, List
+
+BATCH_GET_MAX = 100  # DynamoDB BatchGet limit
+
+def chunked(iterable: Iterable, size: int = BATCH_GET_MAX):
+    it = iter(iterable)
+    while True:
+        chunk = list(islice(it, size))
+        if not chunk:
+            return
+        yield chunk
+
+async def run_in_thread(fn, *args, **kwargs):
+    return await asyncio.to_thread(fn, *args, **kwargs)
