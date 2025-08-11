@@ -72,7 +72,7 @@ class PracticeTask(PracticeTaskBase):
 
 class QuizBase(BaseModel):
     lesson_id: str
-    version_number: int = 1
+    quiz_version: int = 1
 
 class QuizQuestion(BaseModel):
     question_id: str
@@ -83,7 +83,6 @@ class QuizQuestion(BaseModel):
 
 class Quiz(QuizBase):
     id: str
-    ai_generated: bool
     created_at: datetime
     lesson_title: Optional[str] = None
     quiz_questions: List[QuizQuestion] = []
@@ -116,11 +115,9 @@ class QuizAttempt(QuizAttemptBase):
         from_attributes = True
 
 
-
 class QuizSubmissionResponse(BaseModel):
     attempt: QuizAttempt
     ai_feedback: str
-    regenerated_quiz: Optional[Quiz] = None
 
 
 class DashboardStats(BaseModel):
@@ -229,5 +226,29 @@ class AdminDashboard(BaseModel):
     recent_lessons: List[Lesson]
     recent_attempts: List[QuizAttempt]
 
+    class Config:
+        from_attributes = True
+
+
+class QuizAttemptResponsesOut(BaseModel):
+    question_id: str
+    question_text: str
+    question_type: str
+    student_answer:str
+    correct_answer:str
+    
+
+class QuizAttemptOut(BaseModel):
+    id: str
+    lesson_title: Optional[str] = None
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    score: Optional[float] = None
+    passed: bool
+    ai_feedback: Optional[str] = None
+    quiz_version: Optional[int] = None
+    cheating_detected: bool
+    responses: List[QuizAttemptResponsesOut] = []
+    
     class Config:
         from_attributes = True

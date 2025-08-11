@@ -34,18 +34,13 @@ def get_tasks(lesson_id: str):
 
 
 @router.get("/{lesson_id}/quiz/", response_model=Optional[schemas.Quiz])
-def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_student)):
+async def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_student)):
     try:
-        quizzes = crud.crud_quiz.get_by_lesson_student(lesson_id=lesson_id, student_id=student.user_id)
         # Check for successful quiz attempts for this lesson by the student
-        if any(quiz.passed for quiz in quizzes):
-            return Response("The Quiz is completed")
-      
-        if len(quizzes) < 3:
-            return services.generate_quiz(lesson_id, student.user_id)
-
-
-  
+        lesson = crud.crud_lesson.get(lesson_id)
+        new_quiz = await services.generate_quiz(lesson, student)
+        return new_quiz  
+    
     except Exception as e:
         logger.error(f"Error fetching quiz for lesson {lesson_id}: {e}")
         raise HTTPException(
@@ -54,14 +49,40 @@ def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_stude
         )
 
 
-@router.get("/{lesson_id}/attempts/", response_model=List[schemas.QuizAttempt])
+@router.get("/{lesson_id}/attempts/", response_model=List[schemas.QuizAttemptOut])
 def get_quiz_attempts(lesson_id: str, student: models.Student = Depends(get_current_student)):
     try:
         quizzes = crud.crud_quiz.get_by_lesson_student(lesson_id=lesson_id, student_id=student.user_id)
-        attempts = []
+        attempts_out = []
         for quiz in quizzes:
-            attempts.append(schemas.QuizAttempt.model_validate(quiz))
-        return attempts
+            questions_map = {q.question_id: q for q in quiz.quiz_questions}
+            
+            responses_out = []
+            if quiz.responses:
+                for resp in quiz.responses:
+                    question = questions_map.get(resp.question_id)
+                    if question:
+                        responses_out.append(schemas.QuizAttemptResponsesOut(
+                            question_id=resp.question_id,
+                            question_text=question.question_text,
+                            question_type=question.question_type,
+                            student_answer=resp.student_answer,
+                            correct_answer=question.correct_answer
+                        ))
+
+            attempts_out.append(schemas.QuizAttemptOut(
+                id=quiz.id,
+                lesson_title=quiz.lesson_title,
+                start_time=quiz.start_time,
+                end_time=quiz.end_time,
+                score=quiz.score,
+                passed=quiz.passed,
+                ai_feedback=quiz.ai_feedback,
+                quiz_version=quiz.quiz_version,
+                cheating_detected=quiz.cheating_detected,
+                responses=responses_out
+            ))
+        return attempts_out
     except Exception as e:
         logger.error(f"Error fetching quiz attempts for lesson {lesson_id}: {e}")
         raise HTTPException(

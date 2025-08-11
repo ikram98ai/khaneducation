@@ -120,7 +120,7 @@ async def get_student_dashboard_data(student: Student) -> schemas.StudentDashboa
     streak = 0
     if passed_attempts:
         # extract unique dates of passed attempts
-        dates = sorted({a.end_time.date() for a in passed_attempts})
+        dates = sorted({a.end_time.date() for a in passed_attempts if a.end_time})
         if dates:
             longest = 1
             current = 1
@@ -232,8 +232,45 @@ async def create_lesson(
 
 MAX_QUIZ_ATTEMPTS = 3
 
-def generate_quiz(lesson_id:str, student_id:str) -> schemas.Quiz:
-    pass
+async def generate_quiz(lesson:Lesson, student:Student) -> schemas.Quiz:
+    try:
+        try:
+            quizzes = crud.crud_quiz.get_by_lesson_student(lesson.id,student.user_id)
+            quiz_version = max([ quiz.quiz_version for quiz in quizzes]) + 1
+        except:
+            quiz_version = 1 
+
+        if quiz_version >= 3:
+            raise ValueError(f"Student: {student.user_id}, is not able create a new quiz for lesson {lesson.id} due to limited quiz attemtps (3 attempts only).")
+
+
+        db_quiz = Quiz(
+            lesson_id=lesson.id,
+            student_id=student.user_id,
+            lesson_title=lesson.title,
+            quiz_version=quiz_version,
+            start_time=datetime.now(timezone.utc)
+        )
+
+        quiz_questions = await ai.generate_quiz_questions(
+            lesson_content=lesson.content,
+            grade_level=student.current_grade,
+            language=lesson.language,
+        )
+
+        for question_data in quiz_questions:
+            db_quiz.add_question(
+                question_text=question_data.question_text,
+                question_type=question_data.question_type,
+                options=question_data.options,
+                correct_answer=question_data.correct_answer,
+            )
+
+        db_quiz.save()
+        return db_quiz
+    
+    except Exception as e:
+        print(f"Error in generating quiz: {e}")
 
 async def submit_quiz_responses(quiz_id: str, responses: List[schemas.QuizResponse]) -> schemas.QuizSubmissionResponse:
     try:
@@ -271,10 +308,10 @@ async def submit_quiz_responses(quiz_id: str, responses: List[schemas.QuizRespon
         ai_feedback = await ai.generate_quiz_feedback(student_answers=student_answers, correct_answers=correct_answers)
         
         quiz.ai_feedback = ai_feedback
-        quiz.calculate_score()
+        quiz.finish_quiz()
         quiz.save()  # Update the attempt record
 
-        return {"ai_feedback": ai_feedback}
+        return {"attempt": quiz, "ai_feedback": ai_feedback}
 
     except Exception as e:
         print(f"Error in submit_quiz_responses: {e}")
