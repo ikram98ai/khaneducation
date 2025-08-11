@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,7 +12,15 @@ import { useQuiz, useSubmitQuiz } from "@/hooks/useApiQueries";
 import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
+import { 
+  Terminal, 
+  ArrowLeft, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle,
+  Brain,
+  Trophy
+} from "lucide-react";
 
 export const QuizPage = () => {
   const { lessonId } = useParams();
@@ -22,10 +30,44 @@ export const QuizPage = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
   >({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const onBack = () => {
+    if (quizStarted && !window.confirm("Are you sure you want to leave? Your quiz will be submitted automatically.")) {
+      return;
+    }
     window.history.back();
   };
+
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (quizStarted && startTime) {
+      interval = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime.getTime()) / 1000));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [quizStarted, startTime]);
+
+  // Handle page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (quizStarted) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [quizStarted]);
 
   const {
     data: quiz,
@@ -36,6 +78,11 @@ export const QuizPage = () => {
   });
 
   const submitQuizMutation = useSubmitQuiz();
+
+  const handleStartQuiz = () => {
+    setQuizStarted(true);
+    setStartTime(new Date());
+  };
 
   const handleQuizAnswer = (questionId: string, student_answer: string) => {
     setSelectedAnswers((prev) => ({
@@ -48,228 +95,358 @@ export const QuizPage = () => {
     if (currentQuestion < quiz.quiz_questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
     } else {
-      const responses = Object.entries(selectedAnswers).map(
-        ([question_id, student_answer]) => ({
-          question_id,
-          student_answer,
-        })
-      );
-
-      submitQuizMutation.mutate(
-        { quiz_id: quiz.id, responses },
-        {
-          onSuccess: () => {
-            setQuizStarted(false);
-            setCurrentQuestion(0);
-            setSelectedAnswers({});
-          },
-        }
-      );
+      handleSubmitQuiz();
     }
   };
 
+  const previousQuestion = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion((prev) => prev - 1);
+    }
+  };
+
+  const handleSubmitQuiz = async () => {
+    setIsSubmitting(true);
+    const responses = Object.entries(selectedAnswers).map(
+      ([question_id, student_answer]) => ({
+        question_id,
+        student_answer,
+      })
+    );
+
+    submitQuizMutation.mutate(
+      { quiz_id: quiz.id, responses },
+      {
+        onSuccess: () => {
+          setQuizStarted(false);
+          setCurrentQuestion(0);
+          setSelectedAnswers({});
+          setStartTime(null);
+          setElapsedTime(0);
+        },
+        onSettled: () => {
+          setIsSubmitting(false);
+        }
+      }
+    );
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const getAnsweredCount = () => {
+    return Object.keys(selectedAnswers).length;
+  };
+
+  // Header Component
+  const QuizHeader = () => (
+    <div className="bg-gradient-primary text-white px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="text-white hover:bg-white/20"
+              disabled={isSubmitting}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Lesson
+            </Button>
+            <div className="h-8 w-px bg-white/30" />
+            <div className="flex items-center gap-2">
+              <Brain className="h-6 w-6" />
+              <h1 className="text-xl font-semibold">Knowledge Quiz</h1>
+            </div>
+          </div>
+          
+          {quizStarted && quiz && (
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                <span>{getAnsweredCount()}/{quiz.quiz_questions.length} answered</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{formatTime(elapsedTime)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {quizStarted && (
+          <div className="mt-4 p-3 bg-red-500/20 rounded-lg border border-red-300/30">
+            <div className="flex items-center gap-2 text-red-100">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm">
+                Warning: Leaving this page will automatically submit your quiz
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Loading state
   if (isQuizLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6">
-        <Skeleton className="h-10 w-48 mb-8" />
-        <Skeleton className="h-16 w-full mb-4" />
-        <div className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <QuizHeader />
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-6 w-full" />
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
+  // Error state
   if (isQuizError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6 flex items-center justify-center">
-        <Alert variant="destructive" className="max-w-lg">
-          <Terminal className="h-4 w-4" />
-          <AlertTitle>Error Loading Quiz</AlertTitle>
-          <AlertDescription>
-            There was a problem fetching the quiz. Please try again later.
-            <Button onClick={onBack} variant="link" className="p-0 h-auto mt-2">
-              Go Back
-            </Button>
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <QuizHeader />
+        <div className="max-w-4xl mx-auto px-6 py-8 flex items-center justify-center">
+          <Alert variant="destructive" className="max-w-lg shadow-lg">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error Loading Quiz</AlertTitle>
+            <AlertDescription className="mt-2">
+              There was a problem fetching the quiz. Please check your connection and try again.
+              <Button onClick={onBack} variant="link" className="p-0 h-auto mt-3 text-red-600">
+                Go Back to Lesson
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
+  // Quiz start screen
   if (!quizStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6 flex items-center justify-center">
-        <Card className="shadow-soft w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>Knowledge Check Quiz</CardTitle>
-            <CardDescription>
-              Test your understanding of the lesson.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="text-2xl">🧠</div>
-                <div>
-                  <p className="font-medium">Ready to test your knowledge?</p>
-                  <p className="text-sm text-muted-foreground">
-                    You need 70% or higher to pass.
-                  </p>
-                  <p className="text-sm text-red-500">
-                    Note: If you leave the quiz page once you started, it will
-                    be submitted.
-                  </p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <QuizHeader />
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
+              <Trophy className="h-10 w-10 text-blue-600" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Ready to Test Your Knowledge?</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Take this quiz to assess your understanding of the lesson material. 
+              You'll need to score 70% or higher to pass.
+            </p>
+          </div>
+
+          <Card className="shadow-lg max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                Knowledge Check Quiz
+              </CardTitle>
+              <CardDescription>
+                Test your understanding of the lesson concepts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Passing Score</p>
+                    <p className="text-xs text-gray-600">70% or higher required</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
+                  <Clock className="h-5 w-5 text-purple-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Time Tracking</p>
+                    <p className="text-xs text-gray-600">Monitor your progress</p>
+                  </div>
                 </div>
               </div>
+
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">Important Notice</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  Once you start the quiz, leaving this page will automatically submit your answers. 
+                  Make sure you're ready to complete it in one session.
+                </AlertDescription>
+              </Alert>
+
               <Button
-                variant="gradient"
-                onClick={() => setQuizStarted(true)}
+                onClick={handleStartQuiz}
                 size="lg"
-                className="w-full"
+                className="w-full bg-gradient-primary text-white font-medium py-6"
               >
+                <Brain className="h-5 w-5 mr-2" />
                 Start Quiz
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isQuizLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6">
-        <Skeleton className="h-10 w-48 mb-8" />
-        <Skeleton className="h-16 w-full mb-4" />
-        <div className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
+  // No quiz available
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5 p-6 flex items-center justify-center">
-        <Alert variant="destructive" className="max-w-lg">
-          <Terminal className="h-4 w-4" />
-          <AlertTitle>No Quiz Available</AlertTitle>
-          <AlertDescription>
-            There is no quiz available for this lesson.
-            <Button onClick={onBack} variant="link" className="p-0 h-auto mt-2">
-              Go Back
-            </Button>
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <QuizHeader />
+        <div className="max-w-4xl mx-auto px-6 py-8 flex items-center justify-center">
+          <Alert className="max-w-lg shadow-lg">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>No Quiz Available</AlertTitle>
+            <AlertDescription className="mt-2">
+              There is no quiz available for this lesson at the moment.
+              <Button onClick={onBack} variant="link" className="p-0 h-auto mt-3">
+                Return to Lesson
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5">
-      {/* Header */}
-      <div className="bg-gradient-primary text-white px-6 py-8">
-        <div className="max-w-6xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="text-white hover:bg-white/20 mb-4"
-          >
-            ← Back to Lesson
-          </Button>
-          <div className="flex items-center gap-3">
-            <span className="text-red-100">
-              Note: If you leave the quiz page once you started, it will be
-              submitted.
-            </span>
-          </div>
+  // Empty quiz
+  if (quiz.quiz_questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <QuizHeader />
+        <div className="max-w-4xl mx-auto px-6 py-8 flex items-center justify-center">
+          <Alert className="max-w-lg shadow-lg">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>No Questions Available</AlertTitle>
+            <AlertDescription className="mt-2">
+              This quiz doesn't have any questions yet. Please check back later.
+              <Button onClick={onBack} variant="link" className="p-0 h-auto mt-3">
+                Return to Lesson
+              </Button>
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
+    );
+  }
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {quiz.quiz_questions.length == 0 ? (
-          <p> There are no questions for this quiz</p>
-        ) : (
-          <Card className="shadow-soft">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>
-                  Question {currentQuestion + 1} of {quiz.quiz_questions.length}
-                </CardTitle>
-                <Progress
-                  value={
-                    ((currentQuestion + 1) / quiz.quiz_questions.length) * 100
-                  }
-                  className="w-32"
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">
+  // Quiz interface
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      <QuizHeader />
+      
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle className="text-xl">
+                Question {currentQuestion + 1} of {quiz.quiz_questions.length}
+              </CardTitle>
+              <Progress
+                value={((currentQuestion + 1) / quiz.quiz_questions.length) * 100}
+                className="w-40"
+              />
+            </div>
+            <CardDescription>
+              Choose the best answer for the following question
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="space-y-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 leading-relaxed">
                   {quiz.quiz_questions[currentQuestion].question_text}
                 </h3>
+              </div>
 
-                <div className="space-y-3">
-                  {quiz.quiz_questions[currentQuestion].options &&
-                    quiz.quiz_questions[currentQuestion].options.map(
-                      (option, index) => (
-                        <label
-                          key={index}
-                          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                            selectedAnswers[
-                              quiz.quiz_questions[currentQuestion].question_id
-                            ] === option
-                              ? "border-primary bg-primary/10"
-                              : "border-border hover:bg-muted/50"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`question-${currentQuestion}`}
-                            value={option}
-                            checked={
-                              selectedAnswers[
-                                quiz.quiz_questions[currentQuestion].question_id
-                              ] === option
-                            }
-                            onChange={() =>
-                              handleQuizAnswer(
-                                quiz.quiz_questions[currentQuestion]
-                                  .question_id,
-                                option
-                              )
-                            }
-                            className="mr-3"
-                          />
-                          <span>{option}</span>
-                        </label>
-                      )
-                    )}
+              <div className="space-y-3">
+                {quiz.quiz_questions[currentQuestion].options?.map((option, index) => (
+                  <label
+                    key={index}
+                    className={`flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                      selectedAnswers[quiz.quiz_questions[currentQuestion].question_id] === option
+                        ? "border-blue-500 bg-blue-50 shadow-md"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`question-${currentQuestion}`}
+                      value={option}
+                      checked={
+                        selectedAnswers[quiz.quiz_questions[currentQuestion].question_id] === option
+                      }
+                      onChange={() =>
+                        handleQuizAnswer(
+                          quiz.quiz_questions[currentQuestion].question_id,
+                          option
+                        )
+                      }
+                      className="mt-0.5 mr-4 h-4 w-4 text-blue-600"
+                    />
+                    <span className="text-gray-900 leading-relaxed">{option}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={previousQuestion}
+                  disabled={currentQuestion === 0 || isSubmitting}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+
+                <div className="text-sm text-gray-500">
+                  {getAnsweredCount()} of {quiz.quiz_questions.length} questions answered
                 </div>
 
                 <Button
                   onClick={nextQuestion}
                   disabled={
-                    !selectedAnswers[
-                      quiz.quiz_questions[currentQuestion].question_id
-                    ]
+                    !selectedAnswers[quiz.quiz_questions[currentQuestion].question_id] || 
+                    isSubmitting
                   }
-                  className="w-full"
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
                 >
-                  {currentQuestion === quiz.quiz_questions.length - 1
-                    ? "Finish Quiz"
-                    : "Next Question"}
+                  {isSubmitting ? (
+                    "Submitting..."
+                  ) : currentQuestion === quiz.quiz_questions.length - 1 ? (
+                    "Finish Quiz"
+                  ) : (
+                    "Next Question"
+                  )}
+                  {!isSubmitting && currentQuestion < quiz.quiz_questions.length - 1 && (
+                    <ArrowLeft className="h-4 w-4 rotate-180" />
+                  )}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

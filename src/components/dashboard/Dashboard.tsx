@@ -77,7 +77,7 @@ export const Dashboard = () => {
                     Avg Score
                   </p>
                   <p className="text-lg font-bold text-success md:text-2xl">
-                    {avg_score}%
+                    {(avg_score.toFixed(0))}%
                   </p>
                 </div>
                 <div
