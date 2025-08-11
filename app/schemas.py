@@ -46,7 +46,7 @@ class Lesson(LessonBase):
     subject_id: Optional[str] = None
     status: LessonStatusEnum
     created_at: datetime
-    order_in_subject:Optional[int] = None
+    order_in_subject: Optional[int] = None
     verified_at: Optional[datetime] = None
     progress: Optional[float] = 0.0
 
@@ -74,12 +74,14 @@ class QuizBase(BaseModel):
     lesson_id: str
     quiz_version: int = 1
 
+
 class QuizQuestion(BaseModel):
     question_id: str
     question_text: str
     question_type: str
     options: List[str] = []
-    correct_answer:Optional[str] = None
+    correct_answer: Optional[str] = None
+
 
 class Quiz(QuizBase):
     id: str
@@ -95,11 +97,13 @@ class QuizAttemptBase(BaseModel):
     student_id: str
     lesson_id: str
 
+
 class QuizResponse(BaseModel):
     question_id: str
     student_answer: str
     is_correct: Optional[bool] = None
-    
+
+
 class QuizAttempt(QuizAttemptBase):
     id: str
     lesson_title: Optional[str] = None
@@ -111,6 +115,7 @@ class QuizAttempt(QuizAttemptBase):
     quiz_version: Optional[int] = None
     cheating_detected: bool
     responses: List[QuizResponse] = []
+
     class Config:
         from_attributes = True
 
@@ -128,7 +133,7 @@ class DashboardStats(BaseModel):
 
 
 class AIContentRequest(BaseModel):
-    user_messages: List[Dict[str,str]]
+    user_messages: List[Dict[str, str]]
     subject_id: str
     lesson_id: Optional[str] = None
 
@@ -148,7 +153,7 @@ class StudentResponse(StudentResponseBase):
 
 
 class StudentDashboard(BaseModel):
-    enrollments: List[ Subject]
+    enrollments: List[Subject]
     stats: DashboardStats
 
     class Config:
@@ -182,9 +187,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+
 class UserUpdate(UserBase):
     password: Optional[str] = None
-    
+
 
 class User(UserBase):
     id: str
@@ -234,9 +240,9 @@ class QuizAttemptResponsesOut(BaseModel):
     question_id: str
     question_text: str
     question_type: str
-    student_answer:str
-    correct_answer:str
-    
+    student_answer: str
+    correct_answer: str
+
 
 class QuizAttemptOut(BaseModel):
     id: str
@@ -249,6 +255,6 @@ class QuizAttemptOut(BaseModel):
     quiz_version: Optional[int] = None
     cheating_detected: bool
     responses: List[QuizAttemptResponsesOut] = []
-    
+
     class Config:
         from_attributes = True

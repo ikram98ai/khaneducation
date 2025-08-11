@@ -128,7 +128,6 @@ class User(BaseModel):
         return self.username or self.email.split("@")[0]
 
 
-
 class SubjectGradeLevelIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "grade-level-index"
@@ -137,6 +136,7 @@ class SubjectGradeLevelIndex(GlobalSecondaryIndex):
         projection = AllProjection()
 
     grade_level = NumberAttribute(hash_key=True)
+
 
 class Subject(BaseModel):
     class Meta(BaseModel.Meta):
@@ -154,7 +154,6 @@ class Subject(BaseModel):
     grade_level_index = SubjectGradeLevelIndex()
 
 
-
 class LessonSubjectIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "subject-index"
@@ -164,6 +163,7 @@ class LessonSubjectIndex(GlobalSecondaryIndex):
 
     subject_id = UnicodeAttribute(hash_key=True)
     id = UnicodeAttribute(range_key=True)  # Lesson ID as range key
+
 
 class LessonSubjectLanguageIndex(GlobalSecondaryIndex):
     class Meta:
@@ -243,15 +243,16 @@ class StudentByGradeAndLanguageIndex(GlobalSecondaryIndex):
         read_capacity_units = 1
         write_capacity_units = 1
         projection = AllProjection()
+
     current_grade = NumberAttribute(hash_key=True)
     language = UnicodeAttribute(range_key=True)
-
 
 
 class EnrollmentAttribute(MapAttribute):
     subject_id = UnicodeAttribute()
     enrolled_at = UTCDateTimeAttribute()
     status = UnicodeAttribute(default="active")  # active, completed, dropped
+
 
 class Student(BaseModel):
     class Meta(BaseModel.Meta):
@@ -302,7 +303,9 @@ class PracticeTaskByLessonIndex(GlobalSecondaryIndex):
         read_capacity_units = 1
         write_capacity_units = 1
         projection = AllProjection()
+
     lesson_id = UnicodeAttribute(hash_key=True)
+
 
 class PracticeTask(BaseModel):
     class Meta(BaseModel.Meta):
@@ -327,11 +330,12 @@ class QuizQuestionAttribute(MapAttribute):
     options = ListAttribute(of=UnicodeAttribute, null=True)
     correct_answer = UnicodeAttribute(null=True)
 
+
 class QuizResponseAttribute(MapAttribute):
     question_id = UnicodeAttribute()
     student_answer = UnicodeAttribute()
     is_correct = BooleanAttribute()
-    
+
 
 class QuizByLessonStudentIndex(GlobalSecondaryIndex):
     class Meta:
@@ -339,8 +343,10 @@ class QuizByLessonStudentIndex(GlobalSecondaryIndex):
         read_capacity_units = 1
         write_capacity_units = 1
         projection = AllProjection()
+
     lesson_id = UnicodeAttribute(hash_key=True)
     student_id = UnicodeAttribute(range_key=True)
+
 
 class QuizByStudentIndex(GlobalSecondaryIndex):
     class Meta:
@@ -348,12 +354,13 @@ class QuizByStudentIndex(GlobalSecondaryIndex):
         read_capacity_units = 1
         write_capacity_units = 1
         projection = AllProjection()
+
     student_id = UnicodeAttribute(hash_key=True)
     created_at = UTCDateTimeAttribute(range_key=True)
 
 
-
 QUIZ_PASSING_SCORE = 70
+
 
 class Quiz(BaseModel):
     class Meta(BaseModel.Meta):
@@ -412,12 +419,12 @@ class Quiz(BaseModel):
             self.score = 0
             return
 
-         # Get quiz to calculate percentage
-        total_correct = sum([int(r.is_correct) for r in self.responses])    
-        self.score = (total_correct/len(self.responses))*100        
-        
+        # Get quiz to calculate percentage
+        total_correct = sum([int(r.is_correct) for r in self.responses])
+        self.score = (total_correct / len(self.responses)) * 100
+
         if self.score >= QUIZ_PASSING_SCORE:
-            self.passed = True 
+            self.passed = True
         else:
             self.passed = False
 
@@ -433,7 +440,7 @@ class Quiz(BaseModel):
 class StudentProgress(BaseModel):
     class Meta(BaseModel.Meta):
         table_name = "khaneducation_student_progress"
-    
+
     student_id = UnicodeAttribute(hash_key=True)  # Link to Student
     lesson_id = UnicodeAttribute(range_key=True)
     completion_status = UnicodeAttribute(default="not_started")  # not_started, in_progress, completed

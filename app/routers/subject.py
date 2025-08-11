@@ -28,7 +28,7 @@ def get_subject(subject_id: str):
     subject = crud.crud_subject.get(hash_key=subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    
+
     return schemas.SubjectDetail(
         id=subject.id,
         name=subject.name,
@@ -44,6 +44,3 @@ async def get_subject_details(subject_id: str, current_student: models.Student =
         raise HTTPException(status_code=404, detail="Subject not found")
 
     return await services.get_subject_details_data(subject, current_student)
-
-
-

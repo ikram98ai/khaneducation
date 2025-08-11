@@ -58,8 +58,8 @@ async def assist_user(request: schemas.AIContentRequest):
 
     context = f"Subject: {subject.name}, Lesson: {lesson_content}"
     # --- End Fetch Context ---
-    response = await  ai.ai_assistant(request.user_messages, context, lesson.language)
-    return {"ai_response":response}
+    response = await ai.ai_assistant(request.user_messages, context, lesson.language)
+    return {"ai_response": response}
 
 
 handler = Mangum(app)

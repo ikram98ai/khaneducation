@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import List
 from datetime import datetime, timezone
-from .. import crud, schemas, models, services
+from .. import crud, schemas, services
 from ..dependencies import get_current_admin
 
 router = APIRouter(
@@ -55,20 +55,21 @@ def delete_user(user_id: str):
         raise HTTPException(status_code=404, detail="User not found")
     return crud.crud_user.remove(db_obj=db_user)
 
+
 # Subject routes
 @router.post("/subjects/", response_model=schemas.Subject)
 def create_subject(subject: schemas.SubjectCreate):
     new_subject = crud.crud_subject.create(obj_in_data=subject.model_dump())
-    
+
     # Find matching students and enroll them
     students_to_enroll = crud.crud_student.get_by_grade(
-        grade_level=new_subject.grade_level, 
+        grade_level=new_subject.grade_level,
     )
-    
+
     for student in students_to_enroll:
         student.add_enrollment(subject_id=new_subject.id)
         student.save()
-        
+
     return new_subject
 
 
@@ -96,7 +97,9 @@ def delete_subject(subject_id: str):
 
 # Nested Lesson routes
 @router.post("/subjects/{subject_id}/lessons/", response_model=schemas.LessonCreate)
-async def create_lesson_for_subject(subject_id: str, lesson: schemas.LessonCreate, background_tasks: BackgroundTasks, current_admin: schemas.User = Depends(get_current_admin)):
+async def create_lesson_for_subject(
+    subject_id: str, lesson: schemas.LessonCreate, background_tasks: BackgroundTasks, current_admin: schemas.User = Depends(get_current_admin)
+):
     db_subject = crud.crud_subject.get(hash_key=subject_id)
     if db_subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
@@ -112,11 +115,12 @@ async def create_lesson_for_subject(subject_id: str, lesson: schemas.LessonCreat
             language_value=lesson.language,
             instructor_id=current_admin.id,
             title=lesson.title,
-            background_tasks=background_tasks
+            background_tasks=background_tasks,
         )
         return db_lesson
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 @router.post("/lessons/{lesson_id}/regenerate-content/", status_code=status.HTTP_202_ACCEPTED)
 async def regenerate_lesson_content(lesson_id: str, background_tasks: BackgroundTasks):
@@ -134,7 +138,7 @@ async def regenerate_lesson_content(lesson_id: str, background_tasks: Background
         subject=db_subject.name,
         grade_level=db_subject.grade_level,
         language_value=db_lesson.language,
-        title=db_lesson.title
+        title=db_lesson.title,
     )
 
     return {"message": "Lesson content regeneration started in the background."}
@@ -165,7 +169,7 @@ def update_lesson(lesson_id: str, lesson: schemas.LessonCreate):
         raise HTTPException(status_code=404, detail="Lesson not found")
     lesson.instructor_id = db_lesson.instructor_id
     lesson.status = db_lesson.status
-    
+
     return crud.crud_lesson.update(db_obj=db_lesson, obj_in_data=lesson.model_dump())
 
 
@@ -197,7 +201,7 @@ def create_task_for_lesson(lesson_id: str, task: schemas.PracticeTaskBase):
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
     task_data = task.model_dump()
-    task_data['lesson_id'] = lesson_id
+    task_data["lesson_id"] = lesson_id
     return crud.crud_practice_task.create(obj_in_data=task_data)
 
 
@@ -217,7 +221,7 @@ def create_quiz_for_lesson(lesson_id: str, quiz: schemas.QuizBase):
     if db_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
     quiz_data = quiz.model_dump()
-    quiz_data['lesson_id'] = lesson_id
+    quiz_data["lesson_id"] = lesson_id
     return crud.crud_quiz.create(obj_in_data=quiz_data)
 
 

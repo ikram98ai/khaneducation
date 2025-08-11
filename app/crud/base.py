@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # TypeVar for PynamoDB Model
 ModelType = TypeVar("ModelType", bound=Model)
 
+
 class CRUDBase(Generic[ModelType]):
     def __init__(self, model: Type[ModelType]):
         self.model = model
@@ -24,7 +25,7 @@ class CRUDBase(Generic[ModelType]):
                 return self.model.get(hash_key, range_key=range_key)
             else:
                 return self.model.get(hash_key)
-            
+
         except DoesNotExist:
             return None
         except Exception as e:
@@ -68,7 +69,7 @@ class CRUDBase(Generic[ModelType]):
             db_obj.save()  # save() handles both create and update
             return db_obj
         except UpdateError as e:
-            hash_key_val = getattr(db_obj, db_obj._hash_key_attribute().attr_name, 'unknown')
+            hash_key_val = getattr(db_obj, db_obj._hash_key_attribute().attr_name, "unknown")
             logger.error(f"Error updating item in {self.model.Meta.table_name} with key {hash_key_val}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update item")
         except Exception as e:
@@ -78,12 +79,12 @@ class CRUDBase(Generic[ModelType]):
     def remove(self, db_obj: ModelType) -> ModelType:
         """Delete an item."""
         try:
-            hash_key_val = getattr(db_obj, db_obj._hash_key_attribute().attr_name, 'unknown')
+            hash_key_val = getattr(db_obj, db_obj._hash_key_attribute().attr_name, "unknown")
             db_obj.delete()
             logger.info(f"Successfully deleted item from {self.model.Meta.table_name} with key {hash_key_val}")
             return db_obj
         except DeleteError as e:
-            hash_key_val = getattr(db_obj, db_obj._hash_key_attribute().attr_name, 'unknown')
+            hash_key_val = getattr(db_obj, db_obj._hash_key_attribute().attr_name, "unknown")
             logger.error(f"Error deleting item from {self.model.Meta.table_name} with key {hash_key_val}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete item")
         except Exception as e:

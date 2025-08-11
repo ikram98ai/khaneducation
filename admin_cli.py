@@ -1,10 +1,11 @@
 import typer
 import json
-from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz, \
-                       StudentProgress, Notification, LessonRating, StudySession
+from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz, StudentProgress, Notification, LessonRating, StudySession
 from app.utils import hash, is_strong_password
 from tqdm import tqdm
+
 app = typer.Typer()
+
 
 @app.command()
 def create_tables():
@@ -18,6 +19,7 @@ def create_tables():
             table.create_table(wait=True)  # wait=True waits for table creation
         else:
             print(f"Table {table.Meta.table_name} already exists")
+
 
 @app.command()
 def create_admin(username: str = typer.Option(..., "--username", "-u"), email: str = typer.Option(..., "--email", "-e")):
@@ -45,6 +47,7 @@ def create_admin(username: str = typer.Option(..., "--username", "-u"), email: s
     admin_user.save()
     print(f"Admin user '{username}' created successfully.")
 
+
 @app.command()
 def list_admins():
     """
@@ -54,8 +57,11 @@ def list_admins():
     for admin in admins:
         print(f"ID: {admin.id}, Username: {admin.username}, Email: {admin.email}")
 
+
 @app.command()
-def update_admin(user_id: str = typer.Option(..., "--id"), username: str = typer.Option(None, "--username", "-u"), email: str = typer.Option(None, "--email", "-e")):
+def update_admin(
+    user_id: str = typer.Option(..., "--id"), username: str = typer.Option(None, "--username", "-u"), email: str = typer.Option(None, "--email", "-e")
+):
     """
     Update an admin user's details.
     """
@@ -75,6 +81,7 @@ def update_admin(user_id: str = typer.Option(..., "--id"), username: str = typer
         print(f"Admin with ID {user_id} not found.")
         raise typer.Exit()
 
+
 @app.command()
 def delete_admin(user_id: str = typer.Option(..., "--id")):
     """
@@ -91,6 +98,7 @@ def delete_admin(user_id: str = typer.Option(..., "--id")):
     except User.DoesNotExist:
         print(f"Admin with ID {user_id} not found.")
         raise typer.Exit()
+
 
 @app.command()
 def seed_db():
@@ -123,14 +131,11 @@ def seed_db():
         subject = Subject(**subject_info)
         subject.save()
         for lesson_data in tqdm(subject_data.get("lessons", [])):
-            lesson = Lesson(
-                subject_id=subject.id,
-                instructor_id=user.id,
-                **lesson_data
-            )
+            lesson = Lesson(subject_id=subject.id, instructor_id=user.id, **lesson_data)
             lesson.save()
 
     print("Database seeded successfully.")
+
 
 @app.command()
 def update_all_passwords():
@@ -139,7 +144,7 @@ def update_all_passwords():
     """
     new_password = "Abc123()"
     if not is_strong_password(new_password):
-        print(f"The new password is not strong enough.")
+        print("The new password is not strong enough.")
         raise typer.Exit()
 
     hashed_password = hash(new_password)
@@ -147,6 +152,7 @@ def update_all_passwords():
     for user in users:
         user.update(actions=[User.password.set(hashed_password)])
     print("All user passwords updated successfully.")
+
 
 if __name__ == "__main__":
     app()

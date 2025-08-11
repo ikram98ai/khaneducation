@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 
-from .models import User, Student, UserRoleEnum
+from .models import User, UserRoleEnum
 from .config import settings
 from .schemas import User as UserSchema, TokenData, Student as StudentSchema
 from . import crud
@@ -73,7 +73,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserSchema:
 
 
 async def get_current_student(user: UserSchema = Depends(get_current_user)) -> StudentSchema:
-
     if str(user.role) != str(UserRoleEnum.STUDENT):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+
 @router.get("/student/", response_model=schemas.StudentDashboard)
 async def student_dashboard(
     current_student: models.Student = Depends(get_current_student),
@@ -28,7 +29,7 @@ def admin_dashboard():
         # For a production system, you might implement a more sophisticated approach
         # like a dedicated "latest items" table or a more complex indexing strategy.
         recent_lessons = list(models.Lesson.scan(limit=5))
-        
+
         return {
             "total_students": models.Student.count(),
             "total_lessons": models.Lesson.count(),

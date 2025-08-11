@@ -2,7 +2,7 @@
 from fastapi import APIRouter, status, HTTPException
 
 import logging
-from .. import schemas 
+from .. import schemas
 from ..models import User
 from .. import utils, dependencies
 

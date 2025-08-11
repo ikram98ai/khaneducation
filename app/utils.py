@@ -1,5 +1,8 @@
 from passlib.context import CryptContext
 import re
+import asyncio
+from itertools import islice
+from typing import Iterable
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -25,11 +28,8 @@ def is_strong_password(password: str) -> bool:
     return True
 
 
-import asyncio
-from itertools import islice
-from typing import Iterable, List
-
 BATCH_GET_MAX = 100  # DynamoDB BatchGet limit
+
 
 def chunked(iterable: Iterable, size: int = BATCH_GET_MAX):
     it = iter(iterable)
@@ -38,6 +38,7 @@ def chunked(iterable: Iterable, size: int = BATCH_GET_MAX):
         if not chunk:
             return
         yield chunk
+
 
 async def run_in_thread(fn, *args, **kwargs):
     return await asyncio.to_thread(fn, *args, **kwargs)

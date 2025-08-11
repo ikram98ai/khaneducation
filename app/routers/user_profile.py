@@ -4,6 +4,7 @@ from .. import schemas, utils, crud
 from ..dependencies import get_current_user
 import logging
 import enum
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,7 +22,8 @@ def get_user(id: str):
     except Exception as e:
         logger.error(f"Error fetching user {id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
-    
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.User)
 def create_user(user: schemas.UserCreate):
     try:
@@ -62,6 +64,7 @@ def create_user(user: schemas.UserCreate):
 
     return new_user
 
+
 @router.get("/profile/me/", response_model=schemas.StudentProfile)
 def get_me(user: schemas.User = Depends(get_current_user)):
     user_dict = {
@@ -83,7 +86,6 @@ def get_me(user: schemas.User = Depends(get_current_user)):
         }
 
     return schemas.StudentProfile(user=user_dict, student_profile=student_dict)
-
 
 
 @router.post("/profile/me/", response_model=schemas.StudentProfile)
@@ -108,7 +110,7 @@ def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(
 
         try:
             matching_subjects = crud.crud_subject.get_by_grade(
-                grade_level=profile_data.current_grade, 
+                grade_level=profile_data.current_grade,
             )
 
             for subject in matching_subjects:
@@ -123,8 +125,6 @@ def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(
     except Exception as e:
         logger.error(f"Error creating student profile for user {user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
-
-
 
 
 @router.put("/profile/me/", response_model=schemas.User)
@@ -149,4 +149,3 @@ def update_me(user_update: schemas.UserUpdate, current_user: schemas.User = Depe
     except Exception as e:
         logger.error(f"Error updating user {current_user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update user")
-
