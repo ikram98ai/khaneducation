@@ -20,7 +20,6 @@ async def submit_quiz(
     try:
         return await services.submit_quiz_responses(
             quiz_id,
-            current_student.user_id,
             responses,
         )
     except ValueError as e:

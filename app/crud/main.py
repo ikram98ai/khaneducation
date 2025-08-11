@@ -6,7 +6,6 @@ from ..models import (
     Student,
     PracticeTask,
     Quiz,
-    QuizAttempt,
     StudentProgress,
     Notification,
     LessonRating,
@@ -91,46 +90,23 @@ class CRUDPracticeTask(CRUDBase[PracticeTask]):
             raise HTTPException(status_code=500, detail="Database error")
 
 class CRUDQuiz(CRUDBase[Quiz]):
-    def get_by_lesson(self, lesson_id: str) -> List[Quiz]:
+    def get_by_student(self, student_id: str, attributes_to_get:List[str]=None, limit=None) -> List[Quiz]:
         try:
-            return list(self.model.lesson_index.query(lesson_id))
-        except Exception as e:
-            logger.error(f"Error fetching quizzes for lesson {lesson_id}: {e}")
-            raise HTTPException(status_code=500, detail="Database error")
-
-class CRUDQuizAttempt(CRUDBase[QuizAttempt]):
-    def attempts_with_quiz_version_and_lesson_title(self, attempts: List[QuizAttempt]) -> List[QuizAttempt]:
-        for attempt in attempts:
-            try:
-                quiz = Quiz.get(attempt.quiz_id)
-                attempt.quiz_version = quiz.quiz_version            
-                attempt.lesson_title = quiz.lesson_title
-            except Quiz.DoesNotExist:
-                logger.warning(f"Quiz with id {attempt.quiz_id} not found for attempt {attempt.id}")
-                attempt.quiz_version = 0  # Or some default value
-                attempt.lesson_title = "Unknown Lesson"
-                
-        return attempts
-    
-    def get_by_student(self, student_id: str, extra=True, attributes_to_get:List[str]=None) -> List[QuizAttempt]:
-        try:
-            attempts = list(self.model.student_index.query(student_id,attributes_to_get=attributes_to_get))
-            if extra:
-                return self.attempts_with_quiz_version_and_lesson_title(attempts)
-            return attempts
+            quizzes = list(self.model.student_index.query(student_id,attributes_to_get=attributes_to_get, limit=limit))
+            return quizzes
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-    def get_by_student_and_quiz(self, student_id: str, quiz_id: str, extra=True, attributes_to_get:List[str]=None) -> List[QuizAttempt]:
+
+    def get_by_lesson_student(self, lesson_id:str, student_id: str, attributes_to_get:List[str]=None) -> List[Quiz]:
         try:
-            attempts = list(self.model.student_quiz_id_lsi.query(student_id, QuizAttempt.quiz_id==quiz_id, attributes_to_get=attributes_to_get))
-            if extra:
-                return self.attempts_with_quiz_version_and_lesson_title(attempts)
-            return attempts
+            quizzes = list(self.model.lesson_student_index.query(lesson_id, Quiz.student_id==student_id,attributes_to_get=attributes_to_get))
+            return quizzes
         except Exception as e:
-            logger.error(f"Error fetching quiz attempts for student {student_id} and quiz {quiz_id}: {e}")
+            logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
+
 
 class CRUDStudentProgress(CRUDBase[StudentProgress]):
     def get_by_student_and_lesson(self, student_id: str, lesson_id: str) -> Optional[StudentProgress]:
@@ -148,7 +124,6 @@ crud_lesson = CRUDLesson(Lesson)
 crud_student = CRUDStudent(Student)
 crud_practice_task = CRUDPracticeTask(PracticeTask)
 crud_quiz = CRUDQuiz(Quiz)
-crud_quiz_attempt = CRUDQuizAttempt(QuizAttempt)
 crud_student_progress = CRUDStudentProgress(StudentProgress)
 crud_notification = CRUDBase(Notification)
 crud_lesson_rating = CRUDBase(LessonRating)

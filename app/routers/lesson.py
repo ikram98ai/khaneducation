@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status,Response
 from typing import List, Optional
 import logging
-from .. import crud, schemas, models
+from .. import crud, schemas, models, services
 from ..dependencies import get_current_student
 
 # Configure logging
@@ -36,22 +36,16 @@ def get_tasks(lesson_id: str):
 @router.get("/{lesson_id}/quiz/", response_model=Optional[schemas.Quiz])
 def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_student)):
     try:
-        quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson_id)
-        if not quizzes:
-            return Response("Quiz is not found", status_code=404)
-
+        quizzes = crud.crud_quiz.get_by_lesson_student(lesson_id=lesson_id, student_id=student.user_id)
         # Check for successful quiz attempts for this lesson by the student
-        for quiz in quizzes:
-            successful_attempts = crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=student.user_id, quiz_id=quiz.id)
-            if any(attempt.passed for attempt in successful_attempts):
-                return Response("The Quiz is completed")
+        if any(quiz.passed for quiz in quizzes):
+            return Response("The Quiz is completed")
+      
+        if len(quizzes) < 3:
+            return services.generate_quiz(lesson_id, student.user_id)
 
-        # If no successful attempt, load the quiz
-        quiz = sorted(quizzes, key=lambda q: q.quiz_version, reverse=True)[0]
-        lesson = crud.crud_lesson.get(hash_key=lesson_id)
-        quiz.lesson_title = lesson.title if lesson else None
-        return quiz
 
+  
     except Exception as e:
         logger.error(f"Error fetching quiz for lesson {lesson_id}: {e}")
         raise HTTPException(
@@ -63,10 +57,10 @@ def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_stude
 @router.get("/{lesson_id}/attempts/", response_model=List[schemas.QuizAttempt])
 def get_quiz_attempts(lesson_id: str, student: models.Student = Depends(get_current_student)):
     try:
-        quizzes = crud.crud_quiz.get_by_lesson(lesson_id=lesson_id)
+        quizzes = crud.crud_quiz.get_by_lesson_student(lesson_id=lesson_id, student_id=student.user_id)
         attempts = []
         for quiz in quizzes:
-            attempts.extend(crud.crud_quiz_attempt.get_by_student_and_quiz(student_id=student.user_id, quiz_id=quiz.id))
+            attempts.append(schemas.QuizAttempt.model_validate(quiz))
         return attempts
     except Exception as e:
         logger.error(f"Error fetching quiz attempts for lesson {lesson_id}: {e}")

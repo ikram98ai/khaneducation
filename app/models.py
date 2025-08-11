@@ -320,16 +320,6 @@ class PracticeTask(BaseModel):
     lesson_index = PracticeTaskByLessonIndex()
 
 
-class QuizByLessonIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "quiz-lesson-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    lesson_id = UnicodeAttribute(hash_key=True)
-
-
-
 class QuizQuestionAttribute(MapAttribute):
     question_id = UnicodeAttribute()
     question_text = UnicodeAttribute()
@@ -337,22 +327,58 @@ class QuizQuestionAttribute(MapAttribute):
     options = ListAttribute(of=UnicodeAttribute, null=True)
     correct_answer = UnicodeAttribute(null=True)
 
+class QuizResponseAttribute(MapAttribute):
+    question_id = UnicodeAttribute()
+    student_answer = UnicodeAttribute()
+    is_correct = BooleanAttribute()
+    
+
+class QuizByLessonStudentIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-lesson-student-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    lesson_id = UnicodeAttribute(hash_key=True)
+    student_id = UnicodeAttribute(range_key=True)
+
+class QuizByStudentIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-student-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    student_id = UnicodeAttribute(hash_key=True)
+    created_at = UTCDateTimeAttribute(range_key=True)
+
+
+
+QUIZ_PASSING_SCORE = 70
+
 class Quiz(BaseModel):
     class Meta(BaseModel.Meta):
         table_name = "khaneducation_quizzes"
 
     id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
-
+    student_id = UnicodeAttribute()
     lesson_id = UnicodeAttribute()
     lesson_title = UnicodeAttribute()
-    description = UnicodeAttribute(null=True)
     quiz_version = NumberAttribute(default=1)
-    ai_generated = BooleanAttribute(default=True)
-    is_active = BooleanAttribute(default=True)
+    start_time = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
+    end_time = UTCDateTimeAttribute(null=True)
+    time_taken_minutes = NumberAttribute(null=True)
+    ai_feedback = UnicodeAttribute(null=True)
+    score = NumberAttribute(null=True)
+    passed = BooleanAttribute(default=False)
+    cheating_detected = BooleanAttribute(default=False)
 
     # Use proper list attribute for questions
     quiz_questions = ListAttribute(of=QuizQuestionAttribute, null=True)
-    lesson_index = QuizByLessonIndex()
+    # Use proper list attribute for responses
+    responses = ListAttribute(of=QuizResponseAttribute, null=True)
+
+    lesson_student_index = QuizByLessonStudentIndex()
+    student_index = QuizByStudentIndex()
 
     def add_question(self, question_text: str, question_type: str, options: List[str] = None, correct_answer: str = None):
         """Add a question to the quiz"""
@@ -368,55 +394,6 @@ class Quiz(BaseModel):
 
         self.quiz_questions.append(question)
 
-
-class QuizResponseAttribute(MapAttribute):
-    question_id = UnicodeAttribute()
-    student_answer = UnicodeAttribute()
-    is_correct = BooleanAttribute()
-    
-    # Local Secondary Index (LSI) for quiz_id
-class StudentQuizIdLSI(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "student-quiz-id-lsi"
-        projection = AllProjection()
-        read_capacity_units = 1
-        write_capacity_units = 1
-
-    student_id = UnicodeAttribute(hash_key=True)
-    quiz_id = UnicodeAttribute(range_key=True)
-
-class QuizAttemptByStudentIdGSI(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "student_id-index"
-        projection = AllProjection()
-        read_capacity_units = 1
-        write_capacity_units = 1
-
-    student_id = UnicodeAttribute(hash_key=True)
-
-QUIZ_PASSING_SCORE = 70
-class QuizAttempt(BaseModel):
-    class Meta(BaseModel.Meta):
-        table_name = "khaneducation_quiz_attempts"
-
-
-    student_id = UnicodeAttribute(hash_key=True)
-    id = UnicodeAttribute(range_key=True, default_for_new=lambda: str(uuid.uuid4()))
-    quiz_id = UnicodeAttribute()
-    attempt_number = NumberAttribute()  # Track attempt count
-    start_time = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
-    end_time = UTCDateTimeAttribute(null=True)
-    ai_feedback = UnicodeAttribute(null=True)
-    score = NumberAttribute(null=True)
-    passed = BooleanAttribute(default=False)
-    cheating_detected = BooleanAttribute(default=False)
-    time_taken_minutes = NumberAttribute(null=True)
-
-    # Use proper list attribute for responses
-    responses = ListAttribute(of=QuizResponseAttribute, null=True)
-    student_quiz_id_lsi = StudentQuizIdLSI()
-    student_index = QuizAttemptByStudentIdGSI()
-    
     def add_response(self, question_id: str, student_answer: str, is_correct: bool):
         """Add a response to the quiz attempt"""
         if not self.responses:
@@ -444,7 +421,7 @@ class QuizAttempt(BaseModel):
         else:
             self.passed = False
 
-    def finish_attempt(self):
+    def finish_quiz(self):
         """Mark the attempt as finished"""
         self.end_time = datetime.now(timezone.utc)
         if self.start_time:

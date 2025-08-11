@@ -54,29 +54,6 @@ class Lesson(LessonBase):
         from_attributes = True
 
 
-class EnrollmentBase(BaseModel):
-    student_id: str
-    subject_id: str
-
-
-class EnrolledSubject(Subject):
-    enrolled_at: datetime
-    total_lessons: Optional[int] = None
-    completed_lessons: Optional[int] = None
-    progress: Optional[float] = None
-
-    class Config:
-        from_attributes = True
-
-
-class Enrollment(EnrollmentBase):
-    id: str
-    enrolled_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
 class PracticeTaskBase(BaseModel):
     lesson_id: str
     content: str
@@ -116,9 +93,8 @@ class Quiz(QuizBase):
 
 
 class QuizAttemptBase(BaseModel):
-    quiz_id: str
     student_id: str
-
+    lesson_id: str
 
 class QuizResponse(BaseModel):
     question_id: str
@@ -175,8 +151,7 @@ class StudentResponse(StudentResponseBase):
 
 
 class StudentDashboard(BaseModel):
-    enrollments: List[ EnrolledSubject]
-    recent_attempts: List[QuizAttempt]
+    enrollments: List[ Subject]
     stats: DashboardStats
 
     class Config:

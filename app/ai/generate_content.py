@@ -13,12 +13,12 @@ from .prompts import (
 from .utils import get_completion
 
 
-async def ai_assistant(user_messages, context):
+async def ai_assistant(user_messages, context, language):
     """
     AI assistant to answer user queries with context.
     """
     result = await get_completion(
-        ASSISTANT_PROMPT.format(context=context),
+        ASSISTANT_PROMPT.format(context=context, language=language),
         user_messages=user_messages
     )
     return result

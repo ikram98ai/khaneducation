@@ -1,4 +1,4 @@
-ASSISTANT_PROMPT = """You are a helpful AI assistant. Use the provided context to answer the user's query.
+ASSISTANT_PROMPT = """You are a helpful AI assistant in {language} language. Use the provided context to answer the user's query.
 Context: {context}
 """
 
@@ -6,7 +6,7 @@ LESSON_GENERATOR_PROMPT = """You are an expert instructor of {subject}. Generate
 The lesson should include an introduction, learning objectives, a full and detailed main content, a summary, and additional resources.
 """
 
-PRACTICE_TASK_GENERATOR_PROMPT = """Based on the given lesson content, generate a list of 5 practice tasks for grade {grade_level} students in {language}.
+PRACTICE_TASK_GENERATOR_PROMPT = """Based on the given lesson content, generate a list of 5 practice tasks for grade {grade_level} students in {language} with step by step solution.
 
 Each task should be in the format:
 {{
