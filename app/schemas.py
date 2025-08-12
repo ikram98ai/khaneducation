@@ -230,7 +230,6 @@ class AdminDashboard(BaseModel):
     total_subjects: int
     total_quizzes: int
     recent_lessons: List[Lesson]
-    recent_attempts: List[QuizAttempt]
 
     class Config:
         from_attributes = True
