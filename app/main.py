@@ -1,14 +1,15 @@
 # app/main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
 from .ai import generate_content as ai
 from . import schemas
 from . import routers
+from .dependencies import get_current_student
 
 # --- PynamoDB Import ---
-from .models import Subject, Lesson  # Import models needed for AI context
+from .models import Subject, Lesson, Student  # Import models needed for AI context
 
 app = FastAPI(version="1.0.0")
 origins = ["*"]
@@ -40,12 +41,12 @@ def get_languages():
 
 
 @app.post("/ai/assist", response_model=dict)
-async def assist_user(request: schemas.AIContentRequest):
+async def assist_user(request: schemas.AIContentRequest, current_student: Student = Depends(get_current_student)):
     try:
         subject = Subject.get(request.subject_id)  # Fetch Subject by hash key (id)
     except Subject.DoesNotExist:
         subject = None
-
+    language = current_student.language
     lesson_content = ""
     if request.lesson_id:
         try:
@@ -58,7 +59,7 @@ async def assist_user(request: schemas.AIContentRequest):
 
     context = f"Subject: {subject.name}, Lesson: {lesson_content}"
     # --- End Fetch Context ---
-    response = await ai.ai_assistant(request.user_messages, context, lesson.language)
+    response = await ai.ai_assistant(request.user_messages, context, language)
     return {"ai_response": response}
 
 
