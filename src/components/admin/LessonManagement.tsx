@@ -333,6 +333,7 @@ export const LessonManagement = () => {
                             (subject) =>
                               subject.id !== undefined && subject.id !== ""
                           )
+                          .sort((a, b) => a.grade_level - b.grade_level)
                           .map((subject) => (
                             <SelectItem key={subject.id} value={subject.id}>
                               {subject.name} (Grade {subject.grade_level})
@@ -443,6 +444,7 @@ export const LessonManagement = () => {
                           (subject) =>
                             subject.id !== undefined && subject.id !== ""
                         )
+                        .sort((a, b) => a.grade_level - b.grade_level)
                         .map((subject) => (
                           <SelectItem key={subject.id} value={subject.id}>
                             {subject.name} (Grade {subject.grade_level})
@@ -533,6 +535,7 @@ export const LessonManagement = () => {
               ?.filter(
                 (subject) => subject.id !== undefined && subject.id !== ""
               )
+              .sort((a, b) => a.grade_level - b.grade_level)
               .map((subject) => (
                 <SelectItem key={subject.id} value={subject.id}>
                   {subject.name} (Grade {subject.grade_level})
