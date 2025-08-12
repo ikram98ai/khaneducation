@@ -6,6 +6,15 @@ import { useStudentDashboard } from "@/hooks/useApiQueries";
 import { Link } from "react-router-dom";
 import { Navbar } from "../navigation/Navbar";
 import { Skeleton } from "../ui/skeleton";
+import { Calculator, Atom, FlaskConical, Dna, Code } from "lucide-react";
+
+const subjectIcons: { [key: string]: JSX.Element } = {
+  Mathematics: <Calculator className="w-6 h-6 text-primary" />,
+  Physics: <Atom className="w-6 h-6 text-primary" />,
+  Chemistry: <FlaskConical className="w-6 h-6 text-primary" />,
+  Biology: <Dna className="w-6 h-6 text-primary" />,
+  "Computer Science": <Code className="w-6 h-6 text-primary" />,
+};
 
 export const Dashboard = () => {
   const { data: dashboardData, isLoading, error } = useStudentDashboard();
@@ -158,9 +167,12 @@ export const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold mb-2">
-                          {subject.name}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          {subjectIcons[subject.name]}
+                          <h3 className="text-lg font-semibold">
+                            {subject.name}
+                          </h3>
+                        </div>
                         <p className="text-muted-foreground text-sm mb-3">
                           {subject.description}
                         </p>

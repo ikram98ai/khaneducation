@@ -16,7 +16,7 @@ export function Navbar() {
   return (
     <header className="flex h-16 items-center justify-between px-4 md:px-6 max-w-6xl mx-auto bg-gradient-to-br from-background via-accent/5 to-primary/5">
       <div className="flex items-center gap-4">
-        <a href="/" className="flex items-center gap-2">
+        <a href="/dashboard" className="flex items-center gap-2">
           <img
             src="/logo.png"
             alt="khan education logo"
@@ -48,10 +48,12 @@ export function Navbar() {
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <a href="/profile"> 
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
-                <span><a href="/profile"> Profile </a> </span>
+                <span> Profile </span>
               </DropdownMenuItem>
+               </a> 
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>

@@ -59,9 +59,8 @@ export const SubjectDetail = () => {
       <div className="bg-gradient-primary text-white px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <Button
-            variant="ghost"
             onClick={onBack}
-            className="text-white hover:bg-white/20 mb-4"
+            className="text-white hover:font-bold mb-4"
           >
             ← Back to Dashboard
           </Button>

@@ -148,9 +148,8 @@ export const QuizPage = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button
-              variant="ghost"
               onClick={onBack}
-              className="text-white hover:bg-white/20 px-2 sm:px-4"
+              className="text-white hover:font-bold px-2 sm:px-4"
               disabled={isSubmitting}
             >
               <ArrowLeft className="h-4 w-4 sm:mr-2" />
