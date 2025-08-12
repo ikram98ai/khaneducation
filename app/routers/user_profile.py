@@ -149,3 +149,28 @@ def update_me(user_update: schemas.UserUpdate, current_user: schemas.User = Depe
     except Exception as e:
         logger.error(f"Error updating user {current_user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update user")
+
+
+@router.put("/profile/me/student", response_model=schemas.Student)
+def update_student_profile(student_update: schemas.StudentUpdate, current_user: schemas.User = Depends(get_current_user)):
+    try:
+        student_to_update = crud.crud_student.get_by_user_id(current_user.id)
+        if not student_to_update:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student profile not found")
+    except Exception as e:
+        logger.error(f"Error fetching student profile for user {current_user.id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+
+    update_data = student_update.model_dump(exclude_unset=True)
+    if isinstance(update_data.get("language"), enum.Enum):
+        update_data["language"] = update_data["language"].value
+
+    for key, value in update_data.items():
+        setattr(student_to_update, key, value)
+
+    try:
+        student_to_update.save()
+        return student_to_update
+    except Exception as e:
+        logger.error(f"Error updating student profile for user {current_user.id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not update student profile")

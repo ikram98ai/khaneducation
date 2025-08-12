@@ -169,6 +169,11 @@ class StudentCreate(StudentBase):
     pass
 
 
+class StudentUpdate(BaseModel):
+    language: Optional[LanguageChoicesEnum] = None
+    current_grade: Optional[int] = Field(None, ge=1, le=12)
+
+
 class Student(StudentBase):
     user_id: str
 
