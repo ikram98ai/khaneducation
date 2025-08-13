@@ -250,16 +250,16 @@ const AITutorQuiz = () => {
   const getAnswerStyle = (answerIndex: number, answer: Answer) => {
     if (!showResult) {
       return selectedAnswer === answerIndex 
-        ? "bg-white/40 border-2 border-white" 
-        : "bg-white/20 border-2 border-transparent hover:bg-white/30";
+        ? "bg-white/40 dark:bg-gray-700/40 border-2 border-white dark:border-gray-600" 
+        : "bg-white/20 dark:bg-gray-700/20 border-2 border-transparent hover:bg-white/30 dark:hover:bg-gray-700/30";
     }
     
     if (answer.isCorrect) {
-      return "bg-green-500 border-2 border-green-400";
+      return "bg-green-500 dark:bg-green-600 border-2 border-green-400 dark:border-green-500";
     } else if (selectedAnswer === answerIndex) {
-      return "bg-red-500 border-2 border-red-400";
+      return "bg-red-500 dark:bg-red-600 border-2 border-red-400 dark:border-red-500";
     } else {
-      return "bg-white/20 border-2 border-transparent opacity-60";
+      return "bg-white/20 dark:bg-gray-700/20 border-2 border-transparent opacity-60";
     }
   };
 
@@ -303,7 +303,7 @@ const AITutorQuiz = () => {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="relative max-w-4xl mx-auto"
       >
-        <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-3xl shadow-xl p-4 md:p-8">
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border dark:border-gray-700 border-white/40 dark:border-gray-600/40 rounded-3xl shadow-xl p-4 md:p-8">
           {/* Progress Dots */}
           <div className="flex gap-2 mb-6 justify-center md:justify-start">
             {Array.from({ length: totalQuestions }, (_, index) => (
@@ -317,13 +317,13 @@ const AITutorQuiz = () => {
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 md:p-6 text-white">
             <Tabs value={selectedSubject} onValueChange={setSelectedSubject} className="w-full">
               {/* Mobile-optimized tabs */}
-              <div className="overflow-x-auto pb-2">
-                <TabsList className="flex w-max bg-indigo-400/20 text-white h-auto">
+              <div className="pb-2">
+                <TabsList className="flex w-max bg-indigo-400/20 dark:bg-indigo-600/20  text-white dark:text-gray-100 h-auto">
                   {dailyQuiz && Object.keys(dailyQuiz).map((subject) => (
                     <TabsTrigger 
                       key={subject} 
                       value={subject}
-                      className="text-xs md:text-sm p-2 md:p-3 data-[state=active]:bg-white/20"
+                      className="text-xs md:text-sm p-2 md:p-3 data-[state=active]:bg-white/20 dark:data-[state=active]:bg-gray-700/20"
                     >
                       {subject}
                     </TabsTrigger>
@@ -392,8 +392,8 @@ const AITutorQuiz = () => {
                 onClick={handleAnswerSubmit} 
                 disabled={selectedAnswer === null || showResult}
                 className="
-                  bg-white text-indigo-600 py-2 px-6 rounded-xl text-sm font-semibold 
-                  hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                  bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 py-2 px-6 rounded-xl text-sm font-semibold 
+                  hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                   w-full md:w-auto
                 "
               >
@@ -406,7 +406,7 @@ const AITutorQuiz = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 bg-white/10 rounded-xl text-center"
+                className="mt-4 p-4 bg-white/10 dark:bg-gray-800/10 rounded-xl text-center"
               >
                 {currentQuestion?.answers[selectedAnswer].isCorrect ? (
                   <div className="flex items-center justify-center gap-2 text-green-300">

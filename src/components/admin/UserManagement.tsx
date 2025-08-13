@@ -338,8 +338,8 @@ export const UserManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      <UserCheck className="w-4 h-4 text-green-500 mr-1" />
-                      <span className="text-sm text-green-600">Active</span>
+                      <UserCheck className="w-4 h-4 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-sm text-green-600 dark:text-green-500">Active</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">

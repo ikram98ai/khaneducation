@@ -641,7 +641,7 @@ export const LessonManagement = () => {
                     <div className="flex items-center">
                       {lesson.status === "verified" ? (
                         <>
-                          <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
+                          <CheckCircle className="w-4 h-4 mr-1 text-green-500 dark:text-green-400" />
                           <Badge variant="default">Verified</Badge>
                         </>
                       ) : (
@@ -656,7 +656,7 @@ export const LessonManagement = () => {
                         //     <Badge variant="destructive">Failed</Badge>
                         //   </>
                         <>
-                          <Clock className="w-4 h-4 mr-1 text-yellow-500" />
+                          <Clock className="w-4 h-4 mr-1 text-yellow-500 dark:text-yellow-400" />
                           <Badge variant="secondary">Draft</Badge>
                         </>
                       )}

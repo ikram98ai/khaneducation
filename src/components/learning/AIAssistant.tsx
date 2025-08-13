@@ -146,14 +146,14 @@ export const AIAssistant = ({
         onClick={() => setIsOpen(false)}
         aria-hidden="true"
       ></div>
-      <Card className="fixed bottom-0 right-0 w-full h-full flex flex-col md:w-[440px] lg:w-[540px] md:h-[80vh] md:max-h-[700px] md:bottom-6 md:right-6 z-50 shadow-2xl bg-white/80 backdrop-blur-xl border md:rounded-2xl">
-        <CardHeader className="flex-shrink-0 border-b md:rounded-t-2xl bg-white/50 px-4 pt-4 pb-3">
+      <Card className="fixed bottom-0 right-0 w-full h-full flex flex-col md:w-[440px] lg:w-[540px] md:h-[80vh] md:max-h-[700px] md:bottom-6 md:right-6 z-50 shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border dark:border-gray-700 md:rounded-2xl">
+        <CardHeader className="flex-shrink-0 border-b dark:border-gray-700 md:rounded-t-2xl bg-white/50 dark:bg-gray-900/50 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <CardTitle className="text-lg font-semibold">
+              <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 AI Assistant
               </CardTitle>
             </div>
@@ -161,7 +161,7 @@ export const AIAssistant = ({
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8 rounded-full"
+              className="h-8 w-8 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               aria-label="Close"
             >
               x
@@ -185,15 +185,15 @@ export const AIAssistant = ({
                 }`}
               >
                 {message.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-4 w-4 text-gray-500" />
+                  <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   </div>
                 )}
                 <div
                   className={`max-w-[85%] p-3 rounded-lg text-sm ${
                     message.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-gray-100 text-gray-800 border rounded-bl-none"
+                      ? "bg-blue-600 dark:bg-blue-700 text-white dark:text-gray-100 rounded-br-none"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border dark:border-gray-700 rounded-bl-none"
                   }`}
                 >
                   {message.role === "user" ? (
@@ -206,18 +206,18 @@ export const AIAssistant = ({
             ))}
             {isLoading && (
               <div className="flex items-end gap-2 justify-start">
-                <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="h-4 w-4 text-gray-500" />
+                <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 </div>
-                <div className="bg-gray-100 border p-3 rounded-lg rounded-bl-none">
+                <div className="bg-gray-100 dark:bg-gray-800 border dark:border-gray-700 p-3 rounded-lg rounded-bl-none">
                   <div className="flex space-x-1.5">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-pulse"></div>
                     <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"
+                      className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-pulse"
                       style={{ animationDelay: "0.2s" }}
                     ></div>
                     <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"
+                      className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-pulse"
                       style={{ animationDelay: "0.4s" }}
                     ></div>
                   </div>
@@ -228,7 +228,7 @@ export const AIAssistant = ({
           </div>
 
           {/* Input Area */}
-          <div className="flex-shrink-0 border-t md:rounded-b-2xl bg-white/50 p-3">
+          <div className="flex-shrink-0 border-t dark:border-gray-700 md:rounded-b-2xl bg-white/50 dark:bg-gray-900/50 p-3">
             {/* Quick Actions */}
             <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
               {quickActions.map((action, index) => {
@@ -239,7 +239,7 @@ export const AIAssistant = ({
                     variant="outline"
                     size="sm"
                     onClick={() => handleQuickAction(action.action)}
-                    className="flex-shrink-0 text-xs h-8 bg-white"
+                    className="flex-shrink-0 text-xs h-8 bg-white dark:bg-gray-800"
                   >
                     <Icon className="h-3.5 w-3.5 mr-1.5" />
                     {action.label}
@@ -257,17 +257,17 @@ export const AIAssistant = ({
                 onKeyPress={(e) =>
                   e.key === "Enter" && !isLoading && handleSend()
                 }
-                className="flex-1 bg-white"
+                className="flex-1 bg-white dark:bg-gray-800"
                 disabled={isLoading}
               />
               <Button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="rounded-full flex-shrink-0 w-9 h-9 bg-blue-600 hover:bg-blue-700"
+                className="rounded-full flex-shrink-0 w-9 h-9 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
                 aria-label="Send message"
               >
-                <Send className="h-4 w-4 text-white" />
+                <Send className="h-4 w-4 text-white dark:text-gray-100" />
               </Button>
             </div>
           </div>

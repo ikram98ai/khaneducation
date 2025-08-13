@@ -115,7 +115,7 @@ export const ProfilePage = () => {
                       {...registerUser("first_name")}
                     />
                     {userErrors.first_name && (
-                      <p className="text-red-500 text-sm">
+                      <p className="text-red-500 dark:text-red-400 text-sm">
                         {userErrors.first_name.message}
                       </p>
                     )}
@@ -127,7 +127,7 @@ export const ProfilePage = () => {
                       {...registerUser("last_name")}
                     />
                     {userErrors.last_name && (
-                      <p className="text-red-500 text-sm">
+                      <p className="text-red-500 dark:text-red-400 text-sm">
                         {userErrors.last_name.message}
                       </p>
                     )}
@@ -140,7 +140,7 @@ export const ProfilePage = () => {
                       {...registerUser("email")}
                     />
                     {userErrors.email && (
-                      <p className="text-red-500 text-sm">
+                      <p className="text-red-500 dark:text-red-400 text-sm">
                         {userErrors.email.message}
                       </p>
                     )}

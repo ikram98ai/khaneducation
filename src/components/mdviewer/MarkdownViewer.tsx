@@ -55,14 +55,14 @@ const MarkdownViewer = ({
       (match, lang, code) => {
         const language = lang || "text";
         const cleanCode = code.trim();
-        return `<div class="relative bg-gray-900 rounded-lg p-4 my-4 overflow-x-auto border border-gray-700">
+        return `<div class="relative bg-gray-900 dark:bg-gray-950 rounded-lg p-4 my-4 overflow-x-auto border dark:border-gray-800 border-gray-700">
       <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-blue-500"></div>
       ${
         lang
-          ? `<div class="text-xs text-gray-400 mb-2 font-mono">${language}</div>`
+          ? `<div class="text-xs text-gray-400 dark:text-gray-500 mb-2 font-mono">${language}</div>`
           : ""
       }
-      <pre class="text-green-400 font-mono text-sm leading-relaxed"><code>${cleanCode}</code></pre>
+      <pre class="text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed"><code>${cleanCode}</code></pre>
     </div>`;
       }
     );
@@ -86,7 +86,7 @@ const MarkdownViewer = ({
     content = content
       .replace(
         /^(\s*)[-*+]\s+\[x\]\s+(.*)$/gm,
-        '$1<li class="mb-2 text-gray-700 dark:text-gray-300 leading-relaxed flex items-center"><input type="checkbox" checked disabled class="mr-2 text-purple-500"> $2</li>'
+        '$1<li class="mb-2 text-gray-700 dark:text-gray-300 leading-relaxed flex items-center"><input type="checkbox" checked disabled class="mr-2 text-purple-500 dark:text-purple-400"> $2</li>'
       )
       .replace(
         /^(\s*)[-*+]\s+\[\s\]\s+(.*)$/gm,
@@ -138,7 +138,7 @@ const MarkdownViewer = ({
     // Strikethrough
     content = content.replace(
       /~~(.*?)~~/g,
-      '<del class="text-gray-500 line-through">$1</del>'
+      '<del class="text-gray-500 dark:text-gray-400 line-through">$1</del>'
     );
 
     // Bold and italic combinations (handle before individual formatting)

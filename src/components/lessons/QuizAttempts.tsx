@@ -142,7 +142,7 @@ export const QuizAttempts = ({ lessonId }: { lessonId: string }) => {
                     </p>
                     <p
                       className={`text-sm ${
-                        attempt.passed ? "text-green-500" : "text-red-500"
+                        attempt.passed ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"
                       }`}
                     >
                       {attempt.passed ? "Passed" : "Failed"} • Score:{" "}

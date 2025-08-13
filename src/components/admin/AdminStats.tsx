@@ -83,69 +83,69 @@ export const AdminStats = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-green-500 dark:border-l-green-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-green-600 font-medium flex items-center">
+            <CardDescription className="text-green-600 dark:text-green-400 font-medium flex items-center">
               <TrendingUp className="w-4 h-4 mr-1" />
               User Growth
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-green-700">
+            <CardTitle className="text-2xl font-bold text-green-700 dark:text-green-300">
               +{mockAnalytics.userGrowth}%
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-green-600">
+            <div className="text-sm text-green-600 dark:text-green-400">
               This month vs last month
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-blue-500 dark:border-l-blue-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-blue-600 font-medium flex items-center">
+            <CardDescription className="text-blue-600 dark:text-blue-400 font-medium flex items-center">
               <Target className="w-4 h-4 mr-1" />
               Completion Rate
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-blue-700">
+            <CardTitle className="text-2xl font-bold text-blue-700 dark:text-blue-300">
               {mockAnalytics.completionRate}%
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-blue-600">
+            <div className="text-sm text-blue-600 dark:text-blue-400">
               Average lesson completion
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-purple-500 dark:border-l-purple-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-purple-600 font-medium flex items-center">
+            <CardDescription className="text-purple-600 dark:text-purple-400 font-medium flex items-center">
               <Star className="w-4 h-4 mr-1" />
               Average Score
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-purple-700">
+            <CardTitle className="text-2xl font-bold text-purple-700 dark:text-purple-300">
               {mockAnalytics.averageScore}%
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-purple-600">
+            <div className="text-sm text-purple-600 dark:text-purple-400">
               Across all quizzes
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-orange-500 dark:border-l-orange-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-orange-600 font-medium flex items-center">
+            <CardDescription className="text-orange-600 dark:text-orange-400 font-medium flex items-center">
               <Users className="w-4 h-4 mr-1" />
               Active Today
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-orange-700">
+            <CardTitle className="text-2xl font-bold text-orange-700 dark:text-orange-300">
               {mockAnalytics.activeToday}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-orange-600">
+            <div className="text-sm text-orange-600 dark:text-orange-400">
               Students online today
             </div>
           </CardContent>
@@ -157,7 +157,7 @@ export const AdminStats = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Award className="w-5 h-5 mr-2 text-yellow-500" />
+              <Award className="w-5 h-5 mr-2 text-yellow-500 dark:text-yellow-400" />
               Top Performing Subjects
             </CardTitle>
             <CardDescription>
@@ -191,7 +191,7 @@ export const AdminStats = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-blue-500" />
+              <Clock className="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" />
               Recent Activity
             </CardTitle>
             <CardDescription>
@@ -201,7 +201,7 @@ export const AdminStats = () => {
           <CardContent className="space-y-4">
             {mockAnalytics.recentActivity.map((activity, index) => (
               <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                <div className="w-2 h-2 bg-green-500 dark:bg-green-600 rounded-full mt-2 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{activity.action}</p>
                   <p className="text-sm text-muted-foreground">{activity.user}</p>
@@ -282,21 +282,21 @@ export const AdminStats = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2" />
+                <div className="w-3 h-3 bg-blue-500 dark:bg-blue-600 rounded-full mr-2" />
                 <span className="text-sm">Students</span>
               </div>
               <Badge variant="secondary">89%</Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2" />
+                <div className="w-3 h-3 bg-green-500 dark:bg-green-600 rounded-full mr-2" />
                 <span className="text-sm">Instructors</span>
               </div>
               <Badge variant="secondary">9%</Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-2" />
+                <div className="w-3 h-3 bg-red-500 dark:bg-red-600 rounded-full mr-2" />
                 <span className="text-sm">Admins</span>
               </div>
               <Badge variant="secondary">2%</Badge>

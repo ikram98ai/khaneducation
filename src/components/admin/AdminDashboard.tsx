@@ -10,6 +10,7 @@ import { UserManagement } from "./UserManagement";
 import { SubjectManagement } from "./SubjectManagement";
 import { LessonManagement } from "./LessonManagement";
 import { AdminStats } from "./AdminStats";
+import { Navbar } from "../navigation/Navbar";
 
 export const AdminDashboard = () => {
   const { data: dashboardData, isLoading, error } = useAdminDashboard();
@@ -52,6 +53,7 @@ export const AdminDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
+      <Navbar />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
@@ -67,60 +69,60 @@ export const AdminDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-blue-500 dark:border-l-blue-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-blue-600 font-medium">Total Students</CardDescription>
-            <CardTitle className="text-2xl font-bold text-blue-700">
+            <CardDescription className="text-blue-600 dark:text-blue-400 font-medium">Total Students</CardDescription>
+            <CardTitle className="text-2xl font-bold text-blue-700 dark:text-blue-300">
               {dashboardData?.total_students || 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-sm text-blue-600">
+            <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
               <Users className="w-4 h-4 mr-1" />
               Active Learners
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-green-500 dark:border-l-green-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-green-600 font-medium">Total Subjects</CardDescription>
-            <CardTitle className="text-2xl font-bold text-green-700">
+            <CardDescription className="text-green-600 dark:text-green-400 font-medium">Total Subjects</CardDescription>
+            <CardTitle className="text-2xl font-bold text-green-700 dark:text-green-300">
               {dashboardData?.total_subjects || 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-sm text-green-600">
+            <div className="flex items-center text-sm text-green-600 dark:text-green-400">
               <BookOpen className="w-4 h-4 mr-1" />
               Subject Areas
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-purple-500 dark:border-l-purple-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-purple-600 font-medium">Total Lessons</CardDescription>
-            <CardTitle className="text-2xl font-bold text-purple-700">
+            <CardDescription className="text-purple-600 dark:text-purple-400 font-medium">Total Lessons</CardDescription>
+            <CardTitle className="text-2xl font-bold text-purple-700 dark:text-purple-300">
               {dashboardData?.total_lessons || 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-sm text-purple-600">
+            <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
               <GraduationCap className="w-4 h-4 mr-1" />
               Learning Materials
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-orange-500 dark:border-l-orange-600">
           <CardHeader className="pb-2">
-            <CardDescription className="text-orange-600 font-medium">Total Quizzes</CardDescription>
-            <CardTitle className="text-2xl font-bold text-orange-700">
+            <CardDescription className="text-orange-600 dark:text-orange-400 font-medium">Total Quizzes</CardDescription>
+            <CardTitle className="text-2xl font-bold text-orange-700 dark:text-orange-300">
               {dashboardData?.total_quizzes || 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-sm text-orange-600">
+            <div className="flex items-center text-sm text-orange-600 dark:text-orange-400">
               <ClipboardCheck className="w-4 h-4 mr-1" />
               Assessments
             </div>
@@ -143,7 +145,7 @@ export const AdminDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
+                  <TrendingUp className="w-5 h-5 mr-2 text-green-500 dark:text-green-400" />
                   Recent Lessons
                 </CardTitle>
                 <CardDescription>
@@ -174,7 +176,7 @@ export const AdminDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-blue-500" />
+                  <Activity className="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" />
                   Recent Quiz Attempts
                 </CardTitle>
                 <CardDescription>
@@ -187,7 +189,7 @@ export const AdminDashboard = () => {
                     <div>
                       <p className="font-medium">Student ID: {attempt.student_id}</p>
                       <p className="text-sm text-muted-foreground">
-                        Score: <span className={`font-medium ${attempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                        Score: <span className={`font-medium ${attempt.passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                           {Math.round(attempt.score)}%
                         </span>
                       </p>

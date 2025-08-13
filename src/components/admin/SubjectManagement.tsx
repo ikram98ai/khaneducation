@@ -303,7 +303,7 @@ export const SubjectManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center text-sm">
-                      <TrendingUp className="w-4 h-4 mr-1 text-green-500" />
+                      <TrendingUp className="w-4 h-4 mr-1 text-green-500 dark:text-green-400" />
                       {subject.completed_lessons}/{subject.total_lessons}
                     </div>
                   </TableCell>

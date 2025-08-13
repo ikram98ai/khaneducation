@@ -106,7 +106,7 @@ export const CreateProfile = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/20 p-4">
         <Card className="shadow-large border-0">
           <CardContent className="text-center p-6">
-            <p className="text-red-500">
+            <p className="text-red-500 dark:text-red-400">
               Error loading languages. Please try again later.
             </p>
           </CardContent>
