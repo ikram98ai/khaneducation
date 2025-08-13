@@ -317,7 +317,7 @@ const AITutorQuiz = () => {
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 md:p-6 text-white">
             <Tabs value={selectedSubject} onValueChange={setSelectedSubject} className="w-full">
               {/* Mobile-optimized tabs */}
-              <div className="pb-2">
+              <div className="overflow-x-auto pb-2">
                 <TabsList className="flex w-max bg-indigo-400/20 dark:bg-indigo-600/20  text-white dark:text-gray-100 h-auto">
                   {dailyQuiz && Object.keys(dailyQuiz).map((subject) => (
                     <TabsTrigger 

@@ -149,15 +149,15 @@ export const QuizPage = () => {
 
   // Header Component
   const QuizHeader = () => (
-    <div className="px-4 sm:px-6 py-4">
+    <div className="py-4">
       <Navbar />
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="link"
               onClick={onBack}
-              className="hover:font-bold px-2 sm:px-4"
+              className="hover:font-bold px-0 py-0"
               disabled={isSubmitting}
             >
               <ArrowLeft className="h-4 w-4 sm:mr-2" />

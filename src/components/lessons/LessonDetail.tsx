@@ -76,9 +76,9 @@ export const LessonDetail = () => {
     <div className="bg-gradient-to-br from-background via-accent/5 to-primary/5">
       <Navbar />
       {/* Header */}
-      <div className="px-6 py-8">
-        <div className="max-w-6xl mx-auto">
-          <Button variant="link" onClick={onBack} className=" hover:font-bold mb-4">
+      <div className="py-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <Button variant="link" onClick={onBack} className="px-0 py-0 hover:font-bold mb-4">
             ← Back to {subject.name}
           </Button>
           <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
