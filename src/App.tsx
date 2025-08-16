@@ -14,7 +14,7 @@ import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { useAuthStore } from "./stores/authStore";
 import { QuizPage } from "./components/quiz/QuizPage";
 import { ProfilePage } from "./components/profile/ProfilePage";
-import { Navbar } from "./components/navigation/Navbar";
+import MainLayout from "./components/navigation/MainLayout";
 
 const App = () => {
   const { profile } = useAuthStore();
@@ -24,24 +24,25 @@ const App = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <Navbar />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<AuthForm />} />
           <Route path="/profile-setup" element={<CreateProfile />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
-            <Route
-              path="/subjects/:subjectId/lessons/:lessonId"
-              element={<LessonDetail />}
-            />
-            <Route path="/lessons/:lessonId/quiz/" element={<QuizPage />} />
-            <Route
-              path="/dashboard"
-              element={isAdmin ? <AdminDashboard /> : <Dashboard />}
-            />
-            <Route path="/profile/" element={<ProfilePage />} />
+            <Route element={<MainLayout />}>
+              <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
+              <Route
+                path="/subjects/:subjectId/lessons/:lessonId"
+                element={<LessonDetail />}
+              />
+              <Route path="/lessons/:lessonId/quiz/" element={<QuizPage />} />
+              <Route
+                path="/dashboard"
+                element={isAdmin ? <AdminDashboard /> : <Dashboard />}
+              />
+              <Route path="/profile/" element={<ProfilePage />} />
+            </Route>
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

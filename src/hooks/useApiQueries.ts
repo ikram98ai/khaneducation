@@ -230,6 +230,7 @@ export const useQuiz = (lessonId: string, options?: { enabled: boolean }) => {
     queryKey: ["quiz", lessonId],
     queryFn: () => getQuiz(lessonId),
     enabled: !!lessonId,
+    gcTime: 0, // Disable cache
     ...options,
   });
 };
