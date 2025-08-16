@@ -1,7 +1,7 @@
 # app/models.py
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute, ListAttribute, MapAttribute, JSONAttribute
-from pynamodb.indexes import GlobalSecondaryIndex, AllProjection, KeysOnlyProjection
+from pynamodb.indexes import GlobalSecondaryIndex, AllProjection, KeysOnlyProjection, IncludeProjection
 from .config import settings
 import enum
 import uuid
@@ -170,7 +170,7 @@ class LessonSubjectLanguageIndex(GlobalSecondaryIndex):
         index_name = "subject-language-index"
         read_capacity_units = 1
         write_capacity_units = 1
-        projection = AllProjection()
+        projection = IncludeProjection(["id","language","title","order_in_subject","subject_id"])  # Only project selected attrs
 
     subject_id = UnicodeAttribute(hash_key=True)
     language = UnicodeAttribute(range_key=True)
@@ -195,7 +195,7 @@ class LessonStatusIndex(GlobalSecondaryIndex):
         projection = AllProjection()
 
     status = UnicodeAttribute(hash_key=True)
-    created_at = UTCDateTimeAttribute(range_key=True)
+    created_at =  UTCDateTimeAttribute(range_key=True)
 
 
 class Lesson(BaseModel):
@@ -226,15 +226,6 @@ class Lesson(BaseModel):
     status_index = LessonStatusIndex()
 
 
-class StudentProgressLessonIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "lesson-progress-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-
-    lesson_id = UnicodeAttribute(hash_key=True)
-    last_accessed = UTCDateTimeAttribute(range_key=True)
 
 
 class StudentByGradeAndLanguageIndex(GlobalSecondaryIndex):
@@ -348,6 +339,16 @@ class QuizByLessonStudentIndex(GlobalSecondaryIndex):
     student_id = UnicodeAttribute(range_key=True)
 
 
+class QuizBySubjectStudentIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "quiz-subject-student-index"
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+
+    subject_id = UnicodeAttribute(hash_key=True)
+    student_id = UnicodeAttribute(range_key=True)
+
 class QuizByStudentIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "quiz-student-index"
@@ -356,8 +357,6 @@ class QuizByStudentIndex(GlobalSecondaryIndex):
         projection = AllProjection()
 
     student_id = UnicodeAttribute(hash_key=True)
-    created_at = UTCDateTimeAttribute(range_key=True)
-
 
 QUIZ_PASSING_SCORE = 70
 
@@ -368,6 +367,7 @@ class Quiz(BaseModel):
 
     id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
     student_id = UnicodeAttribute()
+    subject_id = UnicodeAttribute()
     lesson_id = UnicodeAttribute()
     lesson_title = UnicodeAttribute()
     quiz_version = NumberAttribute(default=1)
@@ -386,6 +386,7 @@ class Quiz(BaseModel):
 
     lesson_student_index = QuizByLessonStudentIndex()
     student_index = QuizByStudentIndex()
+    subject_student_index = QuizBySubjectStudentIndex()
 
     def add_question(self, question_text: str, question_type: str, options: List[str] = None, correct_answer: str = None):
         """Add a question to the quiz"""
@@ -436,39 +437,6 @@ class Quiz(BaseModel):
             self.time_taken_minutes = round(time_diff.total_seconds() / 60, 2)
         self.calculate_score()
 
-
-class StudentProgress(BaseModel):
-    class Meta(BaseModel.Meta):
-        table_name = "khaneducation_student_progress"
-
-    student_id = UnicodeAttribute(hash_key=True)  # Link to Student
-    lesson_id = UnicodeAttribute(range_key=True)
-    completion_status = UnicodeAttribute(default="not_started")  # not_started, in_progress, completed
-    proficiency_level = NumberAttribute(default=0)  # 0-100 scale
-    knowledge_gaps = JSONAttribute(null=True)  # Structured data for learning analytics
-    last_accessed = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
-    interaction_count = NumberAttribute(default=0)
-    time_spent_minutes = NumberAttribute(default=0)
-    quiz_attempts = NumberAttribute(default=0)
-    best_quiz_score = NumberAttribute(null=True)
-
-    # GSI for querying progress by lesson
-    lesson_index = StudentProgressLessonIndex()
-
-    def update_progress(self, time_spent: int = 0, interaction: bool = True):
-        """Update progress metrics"""
-        if time_spent > 0:
-            self.time_spent_minutes += time_spent
-        if interaction:
-            self.interaction_count += 1
-        self.last_accessed = datetime.now(timezone.utc)
-
-    def mark_completed(self):
-        """Mark lesson as completed"""
-        self.completion_status = "completed"
-        self.last_accessed = datetime.now(timezone.utc)
-
-
 # --- Additional Models for Enhanced Functionality ---
 
 
@@ -485,31 +453,3 @@ class Notification(BaseModel):
     is_read = BooleanAttribute(default=False)
     action_url = UnicodeAttribute(null=True)
     expires_at = UTCDateTimeAttribute(null=True)
-
-
-class LessonRating(BaseModel):
-    class Meta(BaseModel.Meta):
-        table_name = "khaneducation_lesson_ratings"
-
-    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
-
-    lesson_id = UnicodeAttribute()
-    student_id = UnicodeAttribute()
-    rating = NumberAttribute()  # 1-5 scale
-    review = UnicodeAttribute(null=True)
-    is_anonymous = BooleanAttribute(default=False)
-
-
-class StudySession(BaseModel):
-    class Meta(BaseModel.Meta):
-        table_name = "khaneducation_study_sessions"
-
-    id = UnicodeAttribute(hash_key=True, default_for_new=lambda: str(uuid.uuid4()))
-
-    student_id = UnicodeAttribute()
-    lesson_id = UnicodeAttribute(null=True)
-    subject_id = UnicodeAttribute(null=True)
-    session_start = UTCDateTimeAttribute(default_for_new=lambda: datetime.now(timezone.utc))
-    session_end = UTCDateTimeAttribute(null=True)
-    activities_completed = NumberAttribute(default=0)
-    focus_score = NumberAttribute(null=True)  # 1-100 based on interaction patterns

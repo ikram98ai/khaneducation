@@ -1,6 +1,6 @@
 import typer
 import json
-from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz, StudentProgress, Notification, LessonRating, StudySession
+from app.models import UserRoleEnum, User, Subject, Lesson, Student, PracticeTask, Quiz, Notification
 from app.utils import hash, is_strong_password
 from tqdm import tqdm
 
@@ -12,7 +12,7 @@ def create_tables():
     """
     Create database tables.
     """
-    tables = [User, Subject, Lesson, Student, PracticeTask, Quiz, StudentProgress, Notification, LessonRating, StudySession]
+    tables = [User, Subject, Lesson, Student, PracticeTask, Quiz, Notification]
     for table in tables:
         if not table.exists():
             print(f"Creating table {table.Meta.table_name}")

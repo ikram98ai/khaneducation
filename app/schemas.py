@@ -16,16 +16,27 @@ class SubjectCreate(SubjectBase):
 
 class Subject(SubjectBase):
     id: str
-    total_lessons: Optional[int] = None
-    completed_lessons: Optional[int] = None
+    total_lessons: Optional[int] = 0
+    completed_lessons: Optional[int] = 0
     progress: Optional[float] = 0.0
 
     class Config:
         from_attributes = True
 
 
+class SubjectLesson(BaseModel):
+    id: str
+    title: str = Field(..., max_length=255)
+    language: str
+    order_in_subject: Optional[int] = 0
+    progress: Optional[float] = 0.0
+    quiz_attempts: Optional[int]=0
+    is_completed: Optional[bool]=False
+    class Config:
+        from_attributes = True
+
 class SubjectDetail(Subject):
-    lessons: List["Lesson"] = []
+    lessons: List[SubjectLesson] = []
 
 
 class LessonBase(BaseModel):
@@ -46,7 +57,7 @@ class Lesson(LessonBase):
     subject_id: Optional[str] = None
     status: LessonStatusEnum
     created_at: datetime
-    order_in_subject: Optional[int] = None
+    order_in_subject: Optional[int] = 0
     verified_at: Optional[datetime] = None
     progress: Optional[float] = 0.0
 
@@ -101,7 +112,7 @@ class QuizAttemptBase(BaseModel):
 class QuizResponse(BaseModel):
     question_id: str
     student_answer: str
-    is_correct: Optional[bool] = None
+    is_correct: Optional[bool] = False
 
 
 class QuizAttempt(QuizAttemptBase):
@@ -109,10 +120,10 @@ class QuizAttempt(QuizAttemptBase):
     lesson_title: Optional[str] = None
     start_time: datetime
     end_time: Optional[datetime] = None
-    score: Optional[float] = None
+    score: Optional[float] = 0.0
     passed: bool
     ai_feedback: Optional[str] = None
-    quiz_version: Optional[int] = None
+    quiz_version: Optional[int] = 0
     cheating_detected: bool
     responses: List[QuizResponse] = []
 
@@ -171,7 +182,7 @@ class StudentCreate(StudentBase):
 
 class StudentUpdate(BaseModel):
     language: Optional[LanguageChoicesEnum] = None
-    current_grade: Optional[int] = Field(None, ge=1, le=12)
+    current_grade: Optional[int] = Field(0, ge=1, le=12)
 
 
 class Student(StudentBase):
@@ -253,10 +264,10 @@ class QuizAttemptOut(BaseModel):
     lesson_title: Optional[str] = None
     start_time: datetime
     end_time: Optional[datetime] = None
-    score: Optional[float] = None
+    score: Optional[float] = 0.0
     passed: bool
     ai_feedback: Optional[str] = None
-    quiz_version: Optional[int] = None
+    quiz_version: Optional[int] = 0
     cheating_detected: bool
     responses: List[QuizAttemptResponsesOut] = []
 

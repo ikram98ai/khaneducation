@@ -1,5 +1,5 @@
 # app/services.py
-from typing import List
+from typing import List, Dict, Tuple
 from fastapi import BackgroundTasks
 from . import schemas
 from .ai import generate_content as ai
@@ -14,46 +14,68 @@ import asyncio
 from . import crud
 from collections import defaultdict
 
+def group_attempts_by_lesson(attempts: List[Quiz]) -> Dict[str, List[Quiz]]:
+    lesson_attempts = defaultdict(list)
+    for a in attempts:
+        lesson_attempts[a.lesson_id].append(a)
+    return lesson_attempts
+
+def analyze_attempts(attempts: List[Quiz]) -> Tuple[int, bool]:
+    """Return (max_score, is_completed) for a lesson's attempts"""
+    max_score, is_completed = 0, False
+    for a in attempts:
+        if a.score > max_score:
+            max_score = a.score
+        if a.passed:
+            is_completed = True
+    return max_score, is_completed
+
+def calculate_streak(passed_attempts: List[Quiz]) -> int:
+    """Longest streak of consecutive days with a passed attempt"""
+    dates = sorted({a.end_time.date() for a in passed_attempts if a.end_time})
+    if not dates:
+        return 0
+    longest = current = 1
+    for i in range(1, len(dates)):
+        if (dates[i] - dates[i - 1]).days == 1:
+            current += 1
+        else:
+            longest = max(longest, current)
+            current = 1
+    return max(longest, current)
+
 
 async def get_subject_details_data(subject: Subject, student: Student) -> schemas.SubjectDetail:
     # 0. get lessons (assume this is already a query on subject+language)
-    lessons = await run_in_thread(crud.crud_lesson.get_by_subject_and_language, subject.id, student.language)
+    lessons, attempted_quizzes = await asyncio.gather(
+        run_in_thread(crud.crud_lesson.get_by_subject_and_language, subject.id, student.language),
+        run_in_thread(crud.crud_quiz.get_by_subject_student, subject.id, student.user_id)
+    )    
     if not lessons:
         return schemas.SubjectDetail(
             id=subject.id,
             name=subject.name,
             description=subject.description,
-            grade_level=subject.grade_level,
-            total_lessons=0,
-            completed_lessons=0,
-            progress=0.0,
-            lessons=[],
+            grade_level=subject.grade_level
         )
 
-    lesson_ids = [lesson.id for lesson in lessons]
-    lesson_id_set = set(lesson_ids)
+    lesson_attempts = group_attempts_by_lesson(attempted_quizzes)
 
-    # 1. get student's attempts (query the GSI 'by_student_id' — only that student's attempts)
-    # Project only fields we need
-    attr_select = ["id", "passed", "end_time", "score", "lesson_id"]  # include lesson_id if denormalized
-    all_attempts = await run_in_thread(lambda: crud.crud_quiz.get_by_student(student.user_id, attributes_to_get=attr_select))
-
-    # 2. filter passed attempts for quizzes that belong to this subject (two approaches)
-    passed_attempts = [a for a in all_attempts if getattr(a, "passed", False)]
-
-    # If attempts have lesson_id stored, we can directly compute completed lessons
-    completed_lesson_ids = {a.lesson_id for a in passed_attempts if a.lesson_id in lesson_id_set and a.passed}
-
+    completed_count = 0    
     # 3. Build lessons_with_progress
     lessons_with_progress = []
-    completed_set = completed_lesson_ids
     for lesson in lessons:
-        lesson_schema = schemas.Lesson.model_validate(lesson)
-        lesson_schema.progress = 100.0 if lesson.id in completed_set else 0.0
+        attempts = lesson_attempts[lesson.id]
+        max_score, is_completed = analyze_attempts(attempts)            
+        lesson_schema = schemas.SubjectLesson.model_validate(lesson)
+        lesson_schema.progress = max_score
+        lesson_schema.quiz_attempts = len(attempts)
+        lesson_schema.is_completed = is_completed
         lessons_with_progress.append(lesson_schema)
+        if is_completed:
+            completed_count+=1
 
     total_lessons = len(lessons)
-    completed_count = len(completed_set)
     progress = (completed_count / total_lessons) * 100 if total_lessons else 0.0
 
     return schemas.SubjectDetail(
@@ -64,84 +86,50 @@ async def get_subject_details_data(subject: Subject, student: Student) -> schema
         total_lessons=total_lessons,
         completed_lessons=completed_count,
         progress=progress,
-        lessons=lessons_with_progress,
+        lessons= lessons_with_progress 
     )
 
 
 async def get_student_dashboard_data(student: Student) -> schemas.StudentDashboard:
     enrolled_subjects = await run_in_thread(crud.crud_subject.get_by_grade, student.current_grade)
-    enrolled_subject_ids = [s.id for s in enrolled_subjects]
-    if not enrolled_subject_ids:
+    if not enrolled_subjects:
         return schemas.StudentDashboard(enrollments=[], stats=schemas.DashboardStats(completed_lessons=0, total_lessons=0, avg_score=0, streak=0))
 
     # 2. Query lessons for each subject concurrently (assumes lesson.query or crud.get_by_subject is query)
-    async def fetch_lessons_for_subject(subject_id):
-        return await run_in_thread(
-            lambda: crud.crud_lesson.get_by_subject_and_language(subject_id, student.language, attributes_to_get=["id", "subject_id"])
-        )
+    async def fetch_subject(subject):
+        return await get_subject_details_data(subject, student)
 
-    tasks = [fetch_lessons_for_subject(sid) for sid in enrolled_subject_ids]
+    tasks = [fetch_subject(subject) for subject in enrolled_subjects]
     results = await asyncio.gather(*tasks)
-    all_lessons = [lesson for res in results for lesson in res]
-
-    # Map lessons by subject
-    lessons_by_subject = defaultdict(list)
-    for lesson in all_lessons:
-        lessons_by_subject[lesson.subject_id].append(lesson)
-
-    # 3. Get all attempts for student (query GSI)
-    attr_select = ["id", "passed", "end_time", "score", "lesson_id"]
-    all_attempts = await run_in_thread(lambda: crud.crud_quiz.get_by_student(student.user_id, attributes_to_get=attr_select))
-    passed_attempts = [a for a in all_attempts if getattr(a, "passed", False)]
-
-    # 4. Determine completed lesson ids
-    completed_lesson_ids = {a.lesson_id for a in passed_attempts if a.passed}
-
+    subjects: List[schemas.SubjectDetail] = [subject for subject in results]
     # 5. Build enrollments_data
     enrollments_data = []
-    for subject in enrolled_subjects:
-        subject_lessons = lessons_by_subject.get(subject.id, [])
-        total = len(subject_lessons)
-        completed = sum(1 for _ in subject_lessons if _.id in completed_lesson_ids)
-        progress = (completed / total) * 100 if total else 0.0
-
+    total_completed_lessons = 0
+    total_lessons = 0
+    for subject in subjects:
+        total_completed_lessons += subject.completed_lessons
+        total_lessons += subject.total_lessons
         enrollments_data.append(
-            schemas.Subject(
-                id=subject.id,
-                name=subject.name,
-                description=subject.description,
-                grade_level=subject.grade_level,
-                total_lessons=total,
-                completed_lessons=completed,
-                progress=progress,
-            )
+            schemas.Subject.model_validate(subject)
         )
 
     # 6. Dashboard stats
-    completed_lessons_total = len(completed_lesson_ids)
-    total_lessons = len(all_lessons)
+    all_attempts = await run_in_thread(crud.crud_quiz.get_by_student,student.user_id)
+    
+    passed_attempts = []
+    total_score = 0
+    scored_count = 0
+    for a in all_attempts:
+        if getattr(a, "score", None) is not None:
+            total_score += a.score
+            scored_count += 1
+        if getattr(a, "passed", False):
+            passed_attempts.append(a)
 
-    scored_attempts = [a for a in all_attempts if getattr(a, "score", None) is not None]
-    avg_score = (sum(a.score for a in scored_attempts) / len(scored_attempts)) if scored_attempts else 0.0
+    avg_score = (total_score / scored_count) if scored_count else 0.0
+    streak = calculate_streak(passed_attempts)
 
-    # Streak calculation — sort passed attempts by end_time and compute longest consecutive-day streak
-    streak = 0
-    if passed_attempts:
-        # extract unique dates of passed attempts
-        dates = sorted({a.end_time.date() for a in passed_attempts if a.end_time})
-        if dates:
-            longest = 1
-            current = 1
-            for i in range(1, len(dates)):
-                if (dates[i] - dates[i - 1]).days == 1:
-                    current += 1
-                else:
-                    longest = max(longest, current)
-                    current = 1
-            longest = max(longest, current)
-            streak = longest
-
-    stats = schemas.DashboardStats(completed_lessons=completed_lessons_total, total_lessons=total_lessons, avg_score=avg_score, streak=streak)
+    stats = schemas.DashboardStats(completed_lessons=total_completed_lessons, total_lessons=total_lessons, avg_score=avg_score, streak=streak)
     return schemas.StudentDashboard(enrollments=enrollments_data, stats=stats)
 
 
@@ -222,15 +210,10 @@ async def create_lesson(
     return db_lesson
 
 
-MAX_QUIZ_ATTEMPTS = 3
-
-
-async def generate_quiz(lesson: Lesson, student: Student) -> schemas.Quiz | str:
+async def generate_quiz(lesson: Lesson, student: Student) -> schemas.Quiz:
     try:
         try:
             quizzes = crud.crud_quiz.get_by_lesson_student(lesson.id, student.user_id)
-            if any(q.passed for q in quizzes):
-                return "The lesson is successfully completed."
             quiz_version = max([quiz.quiz_version for quiz in quizzes]) + 1
         except Exception as e:
             print("Exception in generating quiz: ", str(e))
@@ -244,6 +227,7 @@ async def generate_quiz(lesson: Lesson, student: Student) -> schemas.Quiz | str:
         db_quiz = Quiz(
             lesson_id=lesson.id,
             student_id=student.user_id,
+            subject_id=lesson.subject_id,
             lesson_title=lesson.title,
             quiz_version=quiz_version,
             start_time=datetime.now(timezone.utc),

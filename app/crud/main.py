@@ -1,7 +1,9 @@
 # app/crud/main.py
-from ..models import User, Subject, Lesson, Student, PracticeTask, Quiz, StudentProgress, Notification, LessonRating, StudySession
+from ..models import User, Subject, Lesson, Student, PracticeTask, Quiz, Notification
 from .base import CRUDBase
-from typing import List, Optional
+from typing import List, Optional, Iterator
+from pynamodb.pagination import ResultIterator
+
 from fastapi import HTTPException
 import logging
 
@@ -43,9 +45,11 @@ class CRUDLesson(CRUDBase[Lesson]):
             logger.error(f"Error fetching lessons for subject {subject_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-    def get_by_subject_and_language(self, subject_id: str, language: str, attributes_to_get: List[str] = None) -> List[Lesson]:
+    def get_by_subject_and_language(self, subject_id: str, language: str, attributes_to_get: List[str] = None) -> Optional[List[Lesson]]:
         try:
             return list(self.model.subject_and_language_index.query(subject_id, Lesson.language == language, attributes_to_get=attributes_to_get))
+        except Lesson.DoesNotExist:
+            return None
         except Exception as e:
             logger.error(f"Error fetching lessons for subject {subject_id} and language {language}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
@@ -85,9 +89,9 @@ class CRUDPracticeTask(CRUDBase[PracticeTask]):
 
 
 class CRUDQuiz(CRUDBase[Quiz]):
-    def get_by_student(self, student_id: str, attributes_to_get: List[str] = None, limit=None) -> List[Quiz]:
+    def get_by_student(self, student_id: str, attributes_to_get: List[str] = None, limit=None) -> ResultIterator[Quiz]:
         try:
-            quizzes = list(self.model.student_index.query(student_id, attributes_to_get=attributes_to_get, limit=limit))
+            quizzes = self.model.student_index.query(student_id, attributes_to_get=attributes_to_get, limit=limit)
             return quizzes
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
@@ -101,15 +105,14 @@ class CRUDQuiz(CRUDBase[Quiz]):
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
-
-class CRUDStudentProgress(CRUDBase[StudentProgress]):
-    def get_by_student_and_lesson(self, student_id: str, lesson_id: str) -> Optional[StudentProgress]:
+    def get_by_subject_student(self, subject_id: str, student_id: str, attributes_to_get: List[str] = None) -> ResultIterator[Quiz]:
         try:
-            result = self.model.get(student_id, StudentProgress.lesson_id == lesson_id)
-            return result
+            quizzes = self.model.subject_student_index.query(subject_id, Quiz.student_id == student_id, attributes_to_get=attributes_to_get)
+            return quizzes
         except Exception as e:
-            logger.error(f"Error fetching student progress for student {student_id} and lesson {lesson_id}: {e}")
+            logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
+
 
 
 # Instantiate CRUD objects
@@ -119,7 +122,4 @@ crud_lesson = CRUDLesson(Lesson)
 crud_student = CRUDStudent(Student)
 crud_practice_task = CRUDPracticeTask(PracticeTask)
 crud_quiz = CRUDQuiz(Quiz)
-crud_student_progress = CRUDStudentProgress(StudentProgress)
 crud_notification = CRUDBase(Notification)
-crud_lesson_rating = CRUDBase(LessonRating)
-crud_study_session = CRUDBase(StudySession)

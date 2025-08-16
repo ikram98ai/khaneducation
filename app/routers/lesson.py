@@ -33,7 +33,7 @@ def get_tasks(lesson_id: str):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
 
-@router.get("/{lesson_id}/quiz/", response_model=schemas.Quiz | str)
+@router.get("/{lesson_id}/quiz/", response_model=schemas.Quiz)
 async def get_quiz(lesson_id: str, student: models.Student = Depends(get_current_student)):
     try:
         # Check for successful quiz attempts for this lesson by the student
