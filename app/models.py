@@ -70,8 +70,6 @@ class BaseModel(Model):
 class UserEmailIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "email-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()  # More efficient for lookups
 
     email = UnicodeAttribute(hash_key=True)
@@ -80,8 +78,6 @@ class UserEmailIndex(GlobalSecondaryIndex):
 class UsernameIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "username-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = KeysOnlyProjection()
 
     username = UnicodeAttribute(hash_key=True)
@@ -90,8 +86,6 @@ class UsernameIndex(GlobalSecondaryIndex):
 class UserRoleIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "role-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = KeysOnlyProjection()
 
     role = UnicodeAttribute(hash_key=True)
@@ -131,8 +125,6 @@ class User(BaseModel):
 class SubjectGradeLevelIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "grade-level-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     grade_level = NumberAttribute(hash_key=True)
@@ -157,8 +149,6 @@ class Subject(BaseModel):
 class LessonSubjectIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "subject-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     subject_id = UnicodeAttribute(hash_key=True)
@@ -168,8 +158,6 @@ class LessonSubjectIndex(GlobalSecondaryIndex):
 class LessonSubjectLanguageIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "subject-language-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = IncludeProjection(["id","language","title","order_in_subject","subject_id"])  # Only project selected attrs
 
     subject_id = UnicodeAttribute(hash_key=True)
@@ -179,8 +167,6 @@ class LessonSubjectLanguageIndex(GlobalSecondaryIndex):
 class LessonInstructorIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "instructor-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     instructor_id = UnicodeAttribute(hash_key=True)
@@ -190,8 +176,6 @@ class LessonInstructorIndex(GlobalSecondaryIndex):
 class LessonStatusIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "status-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     status = UnicodeAttribute(hash_key=True)
@@ -231,8 +215,6 @@ class Lesson(BaseModel):
 class StudentByGradeAndLanguageIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "student-grade-language-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     current_grade = NumberAttribute(hash_key=True)
@@ -291,8 +273,6 @@ class Student(BaseModel):
 class PracticeTaskByLessonIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "practice-task-lesson-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     lesson_id = UnicodeAttribute(hash_key=True)
@@ -331,8 +311,6 @@ class QuizResponseAttribute(MapAttribute):
 class QuizByLessonStudentIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "quiz-lesson-student-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     lesson_id = UnicodeAttribute(hash_key=True)
@@ -342,8 +320,6 @@ class QuizByLessonStudentIndex(GlobalSecondaryIndex):
 class QuizBySubjectStudentIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "quiz-subject-student-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     subject_id = UnicodeAttribute(hash_key=True)
@@ -352,8 +328,6 @@ class QuizBySubjectStudentIndex(GlobalSecondaryIndex):
 class QuizByStudentIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "quiz-student-index"
-        read_capacity_units = 1
-        write_capacity_units = 1
         projection = AllProjection()
 
     student_id = UnicodeAttribute(hash_key=True)

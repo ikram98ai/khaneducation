@@ -27,6 +27,13 @@ class CRUDUser(CRUDBase[User]):
             logger.error(f"Error fetching user by username {username}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
+    def get_multi(self, limit: int = 100) -> List[User]:
+        try:
+            return list(self.model.scan(limit=limit))
+        except Exception as e:
+            logger.error(f"Error fetching multiple users: {e}")
+            raise HTTPException(status_code=500, detail="Database error")
+
 
 class CRUDSubject(CRUDBase[Subject]):
     def get_by_grade(self, grade_level: int) -> List[Subject]:
@@ -34,6 +41,12 @@ class CRUDSubject(CRUDBase[Subject]):
             return list(self.model.grade_level_index.query(grade_level))
         except Exception as e:
             logger.error(f"Error fetching subjects by grade and language: {e}")
+            raise HTTPException(status_code=500, detail="Database error")
+    def get_multi(self, limit: int = 100) -> List[Subject]:
+        try:
+            return list(self.model.scan(limit=limit))
+        except Exception as e:
+            logger.error(f"Error fetching multiple subjects: {e}")
             raise HTTPException(status_code=500, detail="Database error")
 
 

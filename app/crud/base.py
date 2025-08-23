@@ -34,18 +34,11 @@ class CRUDBase(Generic[ModelType]):
 
     def get_multi(self, *args, **kwargs) -> List[ModelType]:
         """
-        Fetch multiple items. This method is a placeholder and should be implemented in subclasses
-        with specific query logic (e.g., using scan or a GSI).
+        Fetch multiple items. This method should be implemented in subclasses
+        with specific query logic (e.g., using a GSI or a more efficient scan).
         """
-        # This is a generic scan, which can be inefficient.
-        # It's better to implement specific query methods in subclasses.
-        try:
-            # A simple scan with a limit. Consider using pagination for large tables.
-            limit = kwargs.get("limit", 100)
-            return list(self.model.scan(limit=limit))
-        except Exception as e:
-            logger.error(f"Error fetching multiple items from {self.model.Meta.table_name}: {e}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+        raise NotImplementedError("This method should be overridden in subclasses with efficient query logic.")
+
 
     def create(self, obj_in_data: dict) -> ModelType:
         """Create a new item."""
@@ -88,5 +81,5 @@ class CRUDBase(Generic[ModelType]):
             logger.error(f"Error deleting item from {self.model.Meta.table_name} with key {hash_key_val}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete item")
         except Exception as e:
-            logger.error(f"Unexpected error deleting item from {self.model.Meta.table_name}: {e}")
+            logger.error(f"Unexpected error deleting item in {self.model.Meta.table_name}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete item")
