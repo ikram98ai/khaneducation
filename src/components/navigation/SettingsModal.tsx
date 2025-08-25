@@ -5,12 +5,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Button } from "../ui/button";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+// import { Button } from "../ui/button";
+// import { useForm } from "react-hook-form";
+// import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useStudentProfile, useUpdateStudentProfile, useLanguages } from "@/hooks/useApiQueries";
+// import { useStudentProfile, useUpdateStudentProfile, useLanguages } from "@/hooks/useApiQueries";
 import { Switch } from "../ui/switch";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -39,22 +39,22 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
 };
 
 const SettingsForm = ({ onClose }) => {
-  const { data: profile } = useStudentProfile();
-  const { data: languages } = useLanguages();
-  const updateStudentProfileMutation = useUpdateStudentProfile();
+  // const { data: profile } = useStudentProfile();
+  // const { data: languages } = useLanguages();
+  // const updateStudentProfileMutation = useUpdateStudentProfile();
   const { theme, setTheme } = useTheme();
 
-  const { handleSubmit: handleStudentSubmit, setValue: setStudentValue } = useForm({
-    resolver: zodResolver(studentProfileSchema),
-    values: {
-      language: profile?.student_profile?.language || "",
-    },
-  });
+  // const { handleSubmit: handleStudentSubmit, setValue: setStudentValue } = useForm({
+  //   resolver: zodResolver(studentProfileSchema),
+  //   values: {
+  //     language: profile?.student_profile?.language || "",
+  //   },
+  // });
 
-  const onStudentSubmit = (data: any) => {
-    updateStudentProfileMutation.mutate(data);
-    onClose();
-  };
+  // const onStudentSubmit = (data: any) => {
+  //   updateStudentProfileMutation.mutate(data);
+  //   onClose();
+  // };
 
   return (
     <div className="space-y-6 py-4">
@@ -69,7 +69,7 @@ const SettingsForm = ({ onClose }) => {
           onCheckedChange={() => setTheme(theme === "dark" ? "light" : "dark")}
         />
       </div>
-      <form onSubmit={handleStudentSubmit(onStudentSubmit)} className="space-y-6">
+      {/* <form onSubmit={handleStudentSubmit(onStudentSubmit)} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="language">Language</Label>
           <Select
@@ -93,7 +93,7 @@ const SettingsForm = ({ onClose }) => {
             ? "Saving..."
             : "Save Changes"}
         </Button>
-      </form>
+      </form> */}
     </div>
   );
 };

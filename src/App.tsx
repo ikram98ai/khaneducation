@@ -6,7 +6,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthForm } from "./components/auth/AuthForm";
-import { CreateProfile } from "./components/profile/CreateProfile";
+// import { CreateProfile } from "./components/profile/CreateProfile";
 import { Dashboard } from "./components/dashboard/Dashboard";
 import { SubjectDetail } from "./components/subjects/SubjectDetail";
 import { LessonDetail } from "./components/lessons/LessonDetail";
@@ -28,7 +28,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<AuthForm />} />
-          <Route path="/profile-setup" element={<CreateProfile />} />
+          {/* <Route path="/profile-setup" element={<CreateProfile />} /> */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
