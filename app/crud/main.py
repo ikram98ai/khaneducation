@@ -121,7 +121,7 @@ class CRUDQuiz(CRUDBase[Quiz]):
     def get_by_subject_student(self, subject_id: str, student_id: str, attributes_to_get: List[str] = None) -> ResultIterator[Quiz]:
         try:
             quizzes = self.model.subject_student_index.query(subject_id, Quiz.student_id == student_id, attributes_to_get=attributes_to_get)
-            return quizzes
+            return list(quizzes)
         except Exception as e:
             logger.error(f"Error fetching quiz attempts for student {student_id}: {e}")
             raise HTTPException(status_code=500, detail="Database error")
