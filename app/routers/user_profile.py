@@ -58,6 +58,8 @@ def create_user(user: schemas.UserCreate):
 
     try:
         new_user = crud.crud_user.create(user_data)
+        student = crud.crud_student.create({"user_id":new_user.id, "language":"English", "current_grade":1})
+
     except Exception as e:
         logger.error(f"Error creating user (transaction): {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user")
@@ -77,6 +79,9 @@ def get_me(user: schemas.User = Depends(get_current_user)):
     }
 
     student = crud.crud_student.get_by_user_id(user.id)
+    if not student:
+        student = crud.crud_student.create({"user_id":user.id, "language":"English", "current_grade":1})
+
     student_dict = None
     if student:
         student_dict = {
@@ -88,43 +93,43 @@ def get_me(user: schemas.User = Depends(get_current_user)):
     return schemas.StudentProfile(user=user_dict, student_profile=student_dict)
 
 
-@router.post("/profile/me/", response_model=schemas.StudentProfile)
-def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(get_current_user)):
-    try:
-        existing_student = crud.crud_student.get_by_user_id(user.id)
-        if existing_student:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student profile already exists for this user")
-    except Student.DoesNotExist:
-        pass
-    except Exception as e:
-        logger.error(f"Error checking student profile for user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
+# @router.post("/profile/me/", response_model=schemas.StudentProfile)
+# def create_me(profile_data: schemas.StudentCreate, user: schemas.User = Depends(get_current_user)):
+#     try:
+#         existing_student = crud.crud_student.get_by_user_id(user.id)
+#         if existing_student:
+#             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student profile already exists for this user")
+#     except Student.DoesNotExist:
+#         pass
+#     except Exception as e:
+#         logger.error(f"Error checking student profile for user {user.id}: {e}")
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-    try:
-        student_data = profile_data.model_dump()
-        if isinstance(student_data.get("language"), enum.Enum):
-            student_data["language"] = student_data["language"].value
-        student_data["user_id"] = user.id
-        new_student = Student(**student_data)
-        new_student.save()
+#     try:
+#         student_data = profile_data.model_dump()
+#         if isinstance(student_data.get("language"), enum.Enum):
+#             student_data["language"] = student_data["language"].value
+#         student_data["user_id"] = user.id
+#         new_student = Student(**student_data)
+#         new_student.save()
 
-        try:
-            matching_subjects = crud.crud_subject.get_by_grade(
-                grade_level=profile_data.current_grade,
-            )
+#         try:
+#             matching_subjects = crud.crud_subject.get_by_grade(
+#                 grade_level=profile_data.current_grade,
+#             )
 
-            for subject in matching_subjects:
-                new_student.add_enrollment(subject_id=subject.id)
-            new_student.save()
+#             for subject in matching_subjects:
+#                 new_student.add_enrollment(subject_id=subject.id)
+#             new_student.save()
 
-        except Exception as e:
-            logger.error(f"Error enrolling student {user.id} in matching subjects: {e}")
+#         except Exception as e:
+#             logger.error(f"Error enrolling student {user.id} in matching subjects: {e}")
 
-        return schemas.StudentProfile(user=user, student_profile=new_student)
+#         return schemas.StudentProfile(user=user, student_profile=new_student)
 
-    except Exception as e:
-        logger.error(f"Error creating student profile for user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
+#     except Exception as e:
+#         logger.error(f"Error creating student profile for user {user.id}: {e}")
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create student profile")
 
 
 @router.put("/profile/me/", response_model=schemas.User)
