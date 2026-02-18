@@ -1,6 +1,6 @@
-# Khan Education API 🚀
+# Khan Education 🚀
 
-**An intelligent, scalable, and AI-driven backend for a next-generation personalized learning platform.**
+**A modern, full-stack e-learning platform powered by AI-driven content generation and intelligent backend infrastructure.**
 
 ## ✨ Vision
 
@@ -10,11 +10,28 @@ To democratize and revolutionize education by leveraging artificial intelligence
 
 ## 🎯 Key Features
 
-*   **🤖 AI-Powered Content Generation**: Dynamically creates comprehensive lessons and quizzes on any subject, transforming simple prompts into rich educational content.
-*   **🎥 Automated Video Lessons**: Goes beyond text by generating complete video lessons, including scripts and voiceovers, to provide a multi-modal learning experience.
-*   **scalable & Robust Backend**: Built with **FastAPI** and a modern technology stack, ensuring high performance, reliability, and developer efficiency.
-*   **👤 Comprehensive User Management**: Full system for managing user profiles, tracking subject enrollment, and monitoring learning progress.
-*   **☁️ Automated Cloud Deployment**: Infrastructure managed with **Terraform** and a complete **CI/CD pipeline** using GitHub Actions for automated, reliable deployments.
+### For Students
+
+- **🤖 AI-Powered Assistance:** Integrated AI Tutor for interactive quizzes and a helpful AI Assistant for guided learning
+- **📚 Rich Content Delivery:** Engaging lessons with Markdown support for formatted text, images, and code blocks
+- **🧠 Interactive Quizzing:** Dynamic quizzes powered by AI to test knowledge and provide instant feedback
+- **📊 Personalized Dashboards:** User-specific dashboards to view enrolled subjects and track learning progress
+- **📈 Progress Analytics:** Visualize learning progress and quiz performance with insightful charts
+- **🔍 Smart Search:** Quickly find subjects and lessons across the platform
+- **📱 Responsive Design:** Seamless experience on desktops, tablets, and mobile devices
+
+### For Educators & Admins
+
+- **⚙️ Comprehensive Admin Panel:** Full suite of tools for managing users, subjects, and lessons
+- **🤖 AI-Generated Content:** Dynamically creates comprehensive lessons and quizzes on any subject
+- **🎥 Automated Video Lessons:** Generates complete video lessons with scripts and voiceovers for multi-modal learning
+- **👤 User Management:** Complete system for managing profiles, tracking enrollment, and monitoring progress
+
+### Technical Excellence
+
+- **scalable & Robust Backend:** Built with **FastAPI** for high performance and reliability
+- **☁️ Automated Cloud Deployment:** Infrastructure managed with **Terraform** and **CI/CD pipeline** via GitHub Actions
+- **🏗️ Modern Architecture:** Clean, layered design for maintainability and extensibility
 
 ---
 
@@ -23,41 +40,63 @@ To democratize and revolutionize education by leveraging artificial intelligence
 The system is designed for scalability, maintainability, and high performance, following modern software architecture principles.
 
 ### System Architecture
-*Illustrates the decoupled, service-oriented architecture.*
+
+_Illustrates the decoupled, service-oriented architecture._
 ![System Architecture](./assets/arch.png)
 
 ### AI Content Generation Flow
-*Details the pipeline from prompt to generated text and video content.*
+
+_Details the pipeline from prompt to generated text and video content._
 ![AI Content Generation Flow](./assets/aiflow.png)
 
 ### Entity-Relationship Diagram (ERD)
-*Defines the database schema and relationships between data entities.*
+
+_Defines the database schema and relationships between data entities._
 ![Entity-Relationship Diagram](./assets/erd.png)
+
+### Platform Screenshots
+
+|                               Main Dashboard                               |                            Subject View                            |
+| :------------------------------------------------------------------------: | :----------------------------------------------------------------: |
+|                  ![Main Dashboard](./web/public/main-sc.png)                   |              ![Subject View](./web/public/subject-sc.png)              |
+| **A personalized dashboard for students to track their learning journey.** |         **Detailed subject pages with organized lessons.**         |
+|                             **Lesson & Quiz**                              |                        **Interactive Quiz**                        |
+|                  ![Lesson & Quiz](./web/public/lesson-sc.png)                  |             ![Interactive Quiz](./web/public/quiz-sc.png)              |
+|          **Engaging lessons with tasks and integrated quizzes.**           | **AI-powered quizzes to test understanding and provide feedback.** |
 
 ---
 
-## 🛠️ Technical Deep-Dive
+## 💻 Tech Stack
 
-### Technology Stack
+This project is built with a modern and robust technology stack:
 
-| Category      | Technology                               |
-|---------------|------------------------------------------|
-| **Backend**       | Python, FastAPI, Pydantic, Pynamodb   |
-| **[Fronend](https://github.com/ikram98ai/khaneducation-web.git)**     | Typescript, React, TanStack Query, Zustand   |
-| **Database**      | Dynamodb                               |
-| **AI**            | Generative AI Models (Text & Video)      |
-| **DevOps**        | Docker, Terraform, GitHub Actions        |
-| **Tooling**       | `uv` for package management              |
+| Category             | Technology                                       |
+| -------------------- | ------------------------------------------------ |
+| **Frontend**         | TypeScript, React, Vite, Tailwind CSS, Shadcn/UI |
+| **Backend**          | Python, FastAPI, Pydantic, Pynamodb              |
+| **Database**         | DynamoDB                                         |
+| **AI**               | Generative AI Models (Text & Video)              |
+| **State Management** | Zustand, TanStack Query                          |
+| **DevOps**           | Docker, Terraform, GitHub Actions                |
+| **Tooling**          | `uv` (Python), npm (JavaScript)                  |
 
-### Architectural Overview
+### Frontend Libraries & Tools
 
-The API follows a clean, layered architecture to separate concerns and enhance maintainability:
+- **Routing:** React Router
+- **Forms:** React Hook Form, Zod
+- **Animation:** Framer Motion
+- **Charts:** Recharts
+- **UI Components:** Shadcn/UI
 
--   **Routers**: (`/app/routers`) Defines the API endpoints, handles request validation, and forwards requests to the appropriate service layer.
--   **Services**: (`/app/services`) Contains the core business logic. It orchestrates operations between the database and other components, like the AI services.
--   **CRUD**: (`/app/crud`) An abstraction layer that handles all Create, Read, Update, and Delete database operations, making the services cleaner and more focused.
--   **Models & Schemas**: (`/app/models.py`, `/app/schemas.py`) Defines the database schema (Pynamodb models) and the API data structures (Pydantic schemas) for robust data validation and serialization.
--   **AI Engine**: (`/app/ai`) A dedicated module for all AI-related tasks, including prompt engineering and interfacing with generative models for content and video creation.
+### Architecture Overview
+
+The backend follows a clean, layered architecture:
+
+- **Routers** (`/app/routers`): Defines API endpoints, handles request validation
+- **Services** (`/app/services`): Core business logic and orchestration
+- **CRUD** (`/app/crud`): Database abstraction layer for all data operations
+- **Models & Schemas** (`/app/models.py`, `/app/schemas.py`): Database schemas (Pynamodb) and API contracts (Pydantic)
+- **AI Engine** (`/app/ai`): Dedicated module for AI tasks, prompt engineering, and content generation
 
 ---
 
@@ -65,45 +104,118 @@ The API follows a clean, layered architecture to separate concerns and enhance m
 
 ### Prerequisites
 
--   Python 3.11+
--   [Docker](https://www.docker.com/)
--   `uv` (recommended for package management)
+**For Both:**
 
-### Local Development Setup
+- [Git](https://git-scm.com/)
+- [AWS CLI](https://aws.amazon.com/cli/) configured with your credentials (for deployment)
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) (for deployment)
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/ikram98ai/khaneducation-api.git
-    cd khaneducation-api
-    ```
+**For Backend:**
 
-2.  **Set up environment variables:**
-    *   Copy the example environment file and fill in the required values (e.g., database credentials, API keys).
-    ```bash
-    cp .env.example .env
-    ```
+- Python 3.11+
+- [Docker](https://www.docker.com/)
+- `uv` (recommended for Python package management)
 
-3.  **Install dependencies:**
-    ```bash
-    uv pip install -r requirements.txt
-    ```
+**For Frontend:**
 
-4.  **Run the application with Uvicorn:**
-    ```bash
-    uvicorn app.main:app --reload
-    ```
-    The API will be available at `http://127.0.0.1:8000`.
+- [Node.js](https://nodejs.org/en) (v18 or later)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
-5.  **Seed the database (optional):**
-    *   To populate the database with initial data for testing:
-    ```bash
-    python seed_db.py
-    ```
+### Backend Setup
+
+1. **Clone the backend repository:**
+
+   ```bash
+   git clone https://github.com/ikram98ai/khaneducation.git
+   cd khaneducation
+   ```
+
+2. **Set up environment variables:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Fill in required values (database credentials, API keys, etc.)
+
+3. **Install dependencies:**
+
+   ```bash
+   uv pip install -r requirements.txt
+   ```
+
+4. **Run the application:**
+
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+   API documentation available at `http://127.0.0.1:8000/docs`
+
+5. **Seed the database (optional):**
+   ```bash
+   python seed_db.py
+   ```
+
+### Frontend Setup
+
+1. **Clone the frontend repository:**
+
+   ```bash
+   cd web
+   ```
+
+2. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   Access at `http://localhost:5173`
+
+---
+
+## 📜 Available Scripts
+
+### Backend
+
+- `uvicorn app.main:app --reload`: Runs the development server
+- `python seed_db.py`: Populates database with initial test data
+
+### Frontend
+
+- `npm run dev`: Starts Vite development server
+- `npm run build`: Builds for production
+- `npm run lint`: Runs ESLint
+- `npm run type-check`: TypeScript static type check
+- `npm run deploy`: Full deployment pipeline (build, upload to S3, invalidate CloudFront)
 
 ---
 
 ## 📚 API Documentation
 
-Once the application is running, interactive API documentation (provided by Swagger UI) is automatically generated and available at:
-
+Interactive Swagger UI documentation is automatically generated and available at:
 `http://127.0.0.1:8000/docs`
+
+---
+
+## ✨ Live Demo
+
+**[Visit Khan Education](https://khaneducation.ai)**
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! If you have suggestions for improvements or want to fix a bug, please feel free to open an issue or submit a pull request.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
